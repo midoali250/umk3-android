@@ -50,7 +50,6 @@ public final class TouchControlsView extends View {
     public ControlLayout layout() { return layout.copy(); }
     public void setEditing(boolean value) {
         editing = value; clearPointers(); emit(0); invalidate();
-        android.util.Log.e("SEGA_EDIT", "setEditing=" + value + " interactive=" + interactive + " size=" + getWidth() + "x" + getHeight());
     }
     public boolean isEditing() { return editing; }
     int dragGroupForTest() { return dragGroup; }
@@ -145,17 +144,16 @@ public final class TouchControlsView extends View {
     @Override public boolean onTouchEvent(MotionEvent event) {
         if (!interactive && !editing) return false;
         int action = event.getActionMasked();
-        if (editing) android.util.Log.e("SEGA_EDIT", "touch action=" + action + " dragGroup=" + dragGroup + " pointerCount=" + pointerCount + " x=" + event.getX() + " y=" + event.getY() + " padX=" + layout.padX + " interactive=" + interactive);
         boolean emptyTap = false;
         if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
             int index = event.getActionIndex();
             if (pointerCount < pointerIds.length) {
                 pointerIds[pointerCount] = event.getPointerId(index);
                 pointerX[pointerCount] = event.getX(index); pointerY[pointerCount] = event.getY(index);
-                if (editing && pointerCount == 1) {
-                    dragGroup = groupAt(pointerX[0], pointerY[0]);
-                    android.util.Log.e("SEGA_EDIT", "down dragGroup=" + dragGroup + " x=" + pointerX[0] + " y=" + pointerY[0]);
-                }
+                // pointerCount is the count BEFORE inserting this pointer.
+                // The first finger must select a drag group; checking == 1 here
+                // made layout editing silently ignore every drag.
+                if (editing && pointerCount == 0) dragGroup = groupAt(pointerX[0], pointerY[0]);
                 pointerCount++;
             }
         } else if (action == MotionEvent.ACTION_MOVE) {
@@ -166,7 +164,6 @@ public final class TouchControlsView extends View {
             if (editing && dragGroup >= 0 && pointerCount > 0) {
                 layout.move(dragGroup, pointerX[0] / getWidth(), pointerY[0] / getHeight());
                 constrainLayout();
-                android.util.Log.e("SEGA_EDIT", "moved dragGroup=" + dragGroup + " padX=" + layout.padX + " padY=" + layout.padY);
             }
         } else if (action == MotionEvent.ACTION_POINTER_UP) {
             removeSlot(slot(event.getPointerId(event.getActionIndex())));

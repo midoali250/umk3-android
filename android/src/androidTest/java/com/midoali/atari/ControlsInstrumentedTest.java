@@ -147,7 +147,11 @@ public class ControlsInstrumentedTest {
             float[] moved=new float[2];int[] mask=new int[1];
             scenario.onActivity(x->{moved[0]=x.controlsForTest().centerX(0);moved[1]=x.controlsForTest().centerY(0);mask[0]=x.engineForTest().inputMask();});
             assertTrue("D-pad did not move in layout editor: "+oldX+" -> "+moved[0]+" dragGroup="+a.controlsForTest().dragGroupForTest(),moved[0]>oldX);assertEquals(0,mask[0]);
-            scenario.onActivity(x->{x.layoutForTest().setScale(1.3f);x.layoutForTest().setOpacity(.5f);x.layoutForTest().bilinear=true;new SettingsStore(x).save(x.layoutForTest());x.controlsForTest().setEditing(false);});
+            scenario.onActivity(x->{
+                com.midoali.atari.core.ControlLayout edited=x.controlsForTest().layout();
+                edited.setScale(1.3f);edited.setOpacity(.5f);edited.bilinear=true;
+                new SettingsStore(x).save(edited);x.controlsForTest().setEditing(false);
+            });
             screenshot(a,"layout-edit");
             scenario.recreate();await(scenario,restored->restored.engineForTest().frame()!=null&&restored.videoForTest().appliedFilter()==GameSurfaceView.FILTER_LINEAR);
             scenario.onActivity(restored->{assertEquals(1.3f,restored.layoutForTest().scale,.001);assertEquals(.5f,restored.layoutForTest().opacity,.001);assertTrue(restored.layoutForTest().padX>.16f);assertTrue(restored.layoutForTest().bilinear);assertTrue(restored.layoutForTest().sixButton);assertEquals(6,restored.controlsForTest().faceButtonCount());});
