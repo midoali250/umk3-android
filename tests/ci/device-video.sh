@@ -6,6 +6,9 @@ PKG=com.midoali.atari.debug
 ./gradlew :android:installDebug --no-daemon --max-workers=2 --stacktrace \
   -Pandroid.injected.build.abi="$ABI"
 
+# Prevent Android's first-run immersive-mode confirmation from covering the game.
+adb shell settings put secure immersive_mode_confirmations confirmed || true
+
 adb push ci-rom/umk3-usa.md /data/local/tmp/umk3.md
 adb shell run-as "$PKG" mkdir -p files
 adb shell run-as "$PKG" cp /data/local/tmp/umk3.md files/umk3.md
