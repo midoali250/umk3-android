@@ -51,7 +51,18 @@ public class VideoInstrumentedTest {
             if (ok[0]) return;
             SystemClock.sleep(100);
         }
-        fail("Timed out waiting for visible game video");
+        MainActivity a = activity(scenario);
+        EmulatorEngine e = a.engineForTest();
+        EmulatorEngine.Frame f = e.frame();
+        String diag = "loaded=" + e.isLoaded() + " error=" + e.error()
+                + " fps=" + e.stats().fps + " coreMs=" + e.stats().coreMillis
+                + " frame=" + (f == null ? "null" : f.serial + ":" + f.width + "x" + f.height + ":state" + f.state.get())
+                + " videoSerial=" + a.videoForTest().frameSerial()
+                + " presented=" + a.videoForTest().presentedFrames()
+                + " nonBlack=" + a.videoForTest().nonBlackFrameSeen()
+                + " surface=" + a.videoForTest().getWidth() + "x" + a.videoForTest().getHeight();
+        try { Bitmap b = screenshot(a, "timeout"); b.recycle(); } catch (Exception ignored) { }
+        fail("Timed out waiting for visible game video; " + diag);
     }
     interface Check { boolean ok(MainActivity a) throws Exception; }
 

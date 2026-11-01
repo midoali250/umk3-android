@@ -45,6 +45,7 @@ static int16_t audio_buffer[AUDIO_CAPACITY];
 static size_t audio_count;
 static uint16_t *video_target;
 static bool video_updated;
+static unsigned debug_runs;
 static retro_audio_buffer_status_callback_t audio_status_cb;
 static unsigned audio_occupancy;
 static bool audio_active, audio_underrun;
@@ -54,6 +55,7 @@ static void throw_java(JNIEnv *env, const char *type, const char *message) {
     if (cls) (*env)->ThrowNew(env, cls, message);
 }
 static void video_callback(const void *data, unsigned width, unsigned height, size_t pitch) {
+    if (debug_runs < 8) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "video_cb data=%p %ux%u pitch=%zu max=%zux%zu", data, width, height, pitch, max_width, max_height);
     if (!data || width == 0 || height == 0 || width > max_width || height > max_height) return;
     uint16_t *destination = video_target;
     if (!destination) return;
@@ -213,6 +215,8 @@ JNIEXPORT jint JNICALL Java_com_midoali_atari_core_SegaCore_nativeRun(JNIEnv *en
     retro_run();
     clock_gettime(CLOCK_MONOTONIC, &end);
     video_target = NULL;
+    if (debug_runs < 8) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "run #%u updated=%d serial=%zu %ux%u audio=%zu", debug_runs, video_updated ? 1 : 0, frame_serial, frame_width, frame_height, audio_count);
+    debug_runs++;
     long long micros = (long long)(end.tv_sec - start.tv_sec) * 1000000LL + (end.tv_nsec - start.tv_nsec) / 1000;
     // Region copies avoid pinning/copying the entire capacity on every frame.
     if (audio_count) (*env)->SetShortArrayRegion(env, audio, 0, (jsize)audio_count, audio_buffer);

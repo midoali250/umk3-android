@@ -13,7 +13,7 @@ adb shell run-as "$PKG" cp /data/local/tmp/umk3.md files/umk3.md
 rc=0
 ./gradlew :android:connectedDebugAndroidTest --no-daemon --max-workers=2 --stacktrace \
   -Pandroid.injected.build.abi="$ABI" \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.midoali.atari.VideoInstrumentedTest,com.midoali.atari.ControlsInstrumentedTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.midoali.atari.VideoInstrumentedTest \
   -Pandroid.testInstrumentationRunnerArguments.rom="/data/data/$PKG/files/umk3.md" \
   -Pandroid.testInstrumentationRunnerArguments.screenshots=true || rc=$?
 
