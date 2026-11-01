@@ -75,7 +75,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            set -euo pipefail
+            set -eu
             PKG=com.midoali.atari.debug
             ./gradlew :android:installDebug --no-daemon --max-workers=2 --stacktrace \
               -Pandroid.injected.build.abi=${{ matrix.abi }}
