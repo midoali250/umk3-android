@@ -51,6 +51,13 @@ public class ControlsInstrumentedTest {
         long now=SystemClock.uptimeMillis();
         MotionEvent e=MotionEvent.obtain(now,now,action,x,y,0);e.setSource(InputDevice.SOURCE_TOUCHSCREEN);return e;
     }
+    private MotionEvent dragEvent(MainActivity a,int action,float x,float y){
+        a.controlsForTest().getLocationOnScreen(location);x+=location[0];y+=location[1];
+        long now=SystemClock.uptimeMillis();
+        MotionEvent.PointerProperties[] props={new MotionEvent.PointerProperties()};props[0].id=0;props[0].toolType=MotionEvent.TOOL_TYPE_FINGER;
+        MotionEvent.PointerCoords[] coords={new MotionEvent.PointerCoords()};coords[0].x=x;coords[0].y=y;coords[0].pressure=1;coords[0].size=1;
+        MotionEvent e=MotionEvent.obtain(now,now,action,1,props,coords,0,0,1,1,0,0,InputDevice.SOURCE_TOUCHSCREEN,0);return e;
+    }
     private void inject(MotionEvent e){assertTrue(InstrumentationRegistry.getInstrumentation().getUiAutomation().injectInputEvent(e,true));e.recycle();}
     private void tap(MainActivity a,int button,int holdMillis){
         TouchControlsView v=a.controlsForTest();float x,y;
@@ -130,10 +137,10 @@ public class ControlsInstrumentedTest {
             MainActivity a=activity(scenario);
             float oldX=a.controlsForTest().centerX(0),oldY=a.controlsForTest().centerY(0);
             scenario.onActivity(x->x.controlsForTest().setEditing(true));
-            inject(event(a,MotionEvent.ACTION_DOWN,oldX,oldY));
-            inject(event(a,MotionEvent.ACTION_MOVE,oldX+80,oldY-40));SystemClock.sleep(150);
-            inject(event(a,MotionEvent.ACTION_MOVE,oldX+160,oldY-80));SystemClock.sleep(150);
-            inject(event(a,MotionEvent.ACTION_UP,oldX+160,oldY-80));
+            inject(dragEvent(a,MotionEvent.ACTION_DOWN,oldX,oldY));SystemClock.sleep(100);
+            inject(dragEvent(a,MotionEvent.ACTION_MOVE,oldX+80,oldY-40));SystemClock.sleep(150);
+            inject(dragEvent(a,MotionEvent.ACTION_MOVE,oldX+160,oldY-80));SystemClock.sleep(150);
+            inject(dragEvent(a,MotionEvent.ACTION_UP,oldX+160,oldY-80));
             float[] moved=new float[2];int[] mask=new int[1];
             scenario.onActivity(x->{moved[0]=x.controlsForTest().centerX(0);moved[1]=x.controlsForTest().centerY(0);mask[0]=x.engineForTest().inputMask();});
             assertTrue("D-pad did not move in layout editor: "+oldX+" -> "+moved[0],moved[0]>oldX);assertEquals(0,mask[0]);
