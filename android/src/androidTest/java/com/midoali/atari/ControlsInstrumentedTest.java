@@ -143,7 +143,7 @@ public class ControlsInstrumentedTest {
             inject(dragEvent(a,MotionEvent.ACTION_UP,oldX+160,oldY-80));
             float[] moved=new float[2];int[] mask=new int[1];
             scenario.onActivity(x->{moved[0]=x.controlsForTest().centerX(0);moved[1]=x.controlsForTest().centerY(0);mask[0]=x.engineForTest().inputMask();});
-            assertTrue("D-pad did not move in layout editor: "+oldX+" -> "+moved[0],moved[0]>oldX);assertEquals(0,mask[0]);
+            assertTrue("D-pad did not move in layout editor: "+oldX+" -> "+moved[0]+" dragGroup="+a.controlsForTest().dragGroupForTest(),moved[0]>oldX);assertEquals(0,mask[0]);
             scenario.onActivity(x->{x.layoutForTest().setScale(1.3f);x.layoutForTest().setOpacity(.5f);x.layoutForTest().bilinear=true;new SettingsStore(x).save(x.layoutForTest());x.controlsForTest().setEditing(false);});
             screenshot(a,"layout-edit");
             scenario.recreate();await(scenario,restored->restored.engineForTest().frame()!=null&&restored.videoForTest().appliedFilter()==GameSurfaceView.FILTER_LINEAR);
