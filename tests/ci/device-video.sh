@@ -7,6 +7,7 @@ PKG=com.midoali.atari.debug
   -Pandroid.injected.build.abi="$ABI"
 
 adb push ci-rom/umk3-usa.md /data/local/tmp/umk3.md
+adb shell run-as "$PKG" mkdir -p files
 adb shell run-as "$PKG" cp /data/local/tmp/umk3.md files/umk3.md
 
 rc=0
