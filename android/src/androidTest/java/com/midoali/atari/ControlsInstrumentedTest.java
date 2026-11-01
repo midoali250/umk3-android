@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @RunWith(AndroidJUnit4.class)
 public class ControlsInstrumentedTest {
     private final int[] location=new int[2];
+    private long dragDownTime;
     private void await(ActivityScenario<MainActivity> scenario,Check check)throws Exception {
         long deadline=SystemClock.uptimeMillis()+90000;
         while(SystemClock.uptimeMillis()<deadline){
@@ -54,9 +55,10 @@ public class ControlsInstrumentedTest {
     private MotionEvent dragEvent(MainActivity a,int action,float x,float y){
         a.controlsForTest().getLocationOnScreen(location);x+=location[0];y+=location[1];
         long now=SystemClock.uptimeMillis();
+        if(action==MotionEvent.ACTION_DOWN)dragDownTime=now;
         MotionEvent.PointerProperties[] props={new MotionEvent.PointerProperties()};props[0].id=0;props[0].toolType=MotionEvent.TOOL_TYPE_FINGER;
         MotionEvent.PointerCoords[] coords={new MotionEvent.PointerCoords()};coords[0].x=x;coords[0].y=y;coords[0].pressure=1;coords[0].size=1;
-        MotionEvent e=MotionEvent.obtain(now,now,action,1,props,coords,0,0,1,1,0,0,InputDevice.SOURCE_TOUCHSCREEN,0);return e;
+        MotionEvent e=MotionEvent.obtain(dragDownTime,now,action,1,props,coords,0,0,1,1,0,0,InputDevice.SOURCE_TOUCHSCREEN,0);return e;
     }
     private void inject(MotionEvent e){assertTrue(InstrumentationRegistry.getInstrumentation().getUiAutomation().injectInputEvent(e,true));e.recycle();}
     private void tap(MainActivity a,int button,int holdMillis){
