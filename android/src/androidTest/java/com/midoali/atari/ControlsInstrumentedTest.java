@@ -115,6 +115,7 @@ public class ControlsInstrumentedTest {
             assertTrue(activity(scenario).isSidePanelOpen());
             scenario.onActivity(a->a.gearForTest().performClick());
             assertFalse(activity(scenario).isSidePanelOpen());
+            await(scenario,a->!a.isSidePanelOpen()&&!a.engineForTest().isPaused());SystemClock.sleep(500);
             // All waits/injections run on the test thread, never block the UI dispatcher.
             tap(activity(scenario),SegaButtons.START,300);SystemClock.sleep(12000);
             tap(activity(scenario),SegaButtons.START,300);SystemClock.sleep(12000);

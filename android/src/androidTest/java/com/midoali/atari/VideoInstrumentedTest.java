@@ -133,6 +133,8 @@ public class VideoInstrumentedTest {
             Bitmap settings = screenshot(a, "settings-open"); settings.recycle();
             scenario.onActivity(x -> x.gearForTest().performClick());
             assertFalse(activity(scenario).isSidePanelOpen());
+            await(scenario, x -> !x.isSidePanelOpen() && !x.engineForTest().isPaused());
+            SystemClock.sleep(500);
 
             for (int button : new int[]{SegaButtons.START, SegaButtons.A}) {
                 float[] p = button(a, button);
