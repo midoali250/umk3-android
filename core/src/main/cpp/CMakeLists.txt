@@ -14,7 +14,10 @@ target_compile_definitions(genesis_core PRIVATE
   __LIBRETRO__ USE_LIBRETRO_VFS USE_LIBTREMOR USE_16BPP_RENDERING FRONTEND_SUPPORTS_RGB565
   LSB_FIRST BYTE_ORDER=LITTLE_ENDIAN HAVE_ZLIB HAVE_YM3438_CORE HAVE_OPLL_CORE
   USE_PER_SOUND_CHANNELS_CONFIG M68K_OVERCLOCK_SHIFT=20 Z80_OVERCLOCK_SHIFT=20
-  MAXROMSIZE=16777216 GIT_VERSION="f27655b5")
+  MAXROMSIZE=16777216 GIT_VERSION="f27655b5"
+  # Match upstream Android.mk. The two pointer-alignment checks in vdp_render.c
+  # use uintptr_t (patched) so they remain correct on 64-bit targets.
+  ALIGN_LONG ALIGN_WORD)
 target_compile_definitions(genesis_core PRIVATE "INLINE=static inline")
 target_compile_options(genesis_core PRIVATE -O3 -DNDEBUG -fPIC -fno-strict-aliasing -ffunction-sections -fdata-sections -Wno-error)
 if(ANDROID)

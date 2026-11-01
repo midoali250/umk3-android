@@ -80,7 +80,7 @@ extern sms_ntsc_t *sms_ntsc;
 
 INLINE uint32 READ_LONG(void *address)
 {
-  if ((uint32)address & 3)
+  if ((uintptr_t)address & 3)
   {
 #ifdef LSB_FIRST  /* little endian version */
     return ( *((uint8 *)address) +
@@ -99,7 +99,7 @@ INLINE uint32 READ_LONG(void *address)
 
 INLINE void WRITE_LONG(void *address, uint32 data)
 {
-  if ((uint32)address & 3)
+  if ((uintptr_t)address & 3)
   {
 #ifdef LSB_FIRST
       *((uint8 *)address) =  data;
