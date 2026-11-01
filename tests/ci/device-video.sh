@@ -13,11 +13,12 @@ adb shell run-as "$PKG" cp /data/local/tmp/umk3.md files/umk3.md
 rc=0
 ./gradlew :android:connectedDebugAndroidTest --no-daemon --max-workers=2 --stacktrace \
   -Pandroid.injected.build.abi="$ABI" \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.midoali.atari.VideoInstrumentedTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.midoali.atari.VideoInstrumentedTest,com.midoali.atari.ControlsInstrumentedTest \
   -Pandroid.testInstrumentationRunnerArguments.rom="/data/data/$PKG/files/umk3.md" \
   -Pandroid.testInstrumentationRunnerArguments.screenshots=true || rc=$?
 
 mkdir -p artifacts/device-captures
+adb exec-out screencap -p > artifacts/device-captures/screen.png || true
 adb logcat -d > artifacts/device-captures/logcat.txt || true
 for f in $(adb shell run-as "$PKG" ls files/test-captures 2>/dev/null | tr -d '\r'); do
   adb exec-out run-as "$PKG" cat "files/test-captures/$f" > "artifacts/device-captures/$f" || true

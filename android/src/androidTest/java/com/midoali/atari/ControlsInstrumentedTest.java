@@ -76,7 +76,7 @@ public class ControlsInstrumentedTest {
         ApplicationProvider.getApplicationContext().getSharedPreferences("sega-settings",0).edit().clear().commit();
         Intent intent=new Intent(ApplicationProvider.getApplicationContext(),MainActivity.class).putExtra(MainActivity.EXTRA_TEST_ROM,path);
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(intent)){
-            await(scenario,a->a.engineForTest().frame()!=null&&a.videoForTest().frameSerial()>120);
+            await(scenario,a->a.engineForTest().frame()!=null&&a.videoForTest().presentedFrames()>120);
             assertEquals(6,activity(scenario).controlsForTest().faceButtonCount());
             // Regression: video must actually present non-black pixels (v0.4 black-screen bug).
             await(scenario,a->a.videoForTest().nonBlackFrameSeen());

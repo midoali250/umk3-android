@@ -108,7 +108,7 @@ public class VideoInstrumentedTest {
         Intent intent = new Intent(ApplicationProvider.getApplicationContext(), MainActivity.class)
                 .putExtra(MainActivity.EXTRA_TEST_ROM, testRom().getAbsolutePath());
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(intent)) {
-            await(scenario, a -> a.engineForTest().frame()!=null && a.videoForTest().frameSerial()>120 && a.videoForTest().nonBlackFrameSeen());
+            await(scenario, a -> a.engineForTest().frame()!=null && a.videoForTest().presentedFrames()>120 && a.videoForTest().nonBlackFrameSeen());
             MainActivity a = activity(scenario);
             assertEquals(6, a.controlsForTest().faceButtonCount());
 
