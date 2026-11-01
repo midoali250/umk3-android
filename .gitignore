@@ -32,3 +32,6 @@ captures/
 roms/*
 !roms/.gitkeep
 !roms/README.md
+
+# Private CI inputs downloaded from a private release, never committed.
+ci-rom/

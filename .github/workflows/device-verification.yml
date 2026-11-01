@@ -17,7 +17,7 @@ jobs:
   device-emulator:
     name: device-video-${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -27,7 +27,7 @@ jobs:
             arch: x86_64
             abi: x86_64
           - name: arm64
-            runner: macos-15
+            runner: ubuntu-24.04-arm
             arch: arm64-v8a
             abi: arm64-v8a
     steps:
@@ -51,6 +51,12 @@ jobs:
           set -euo pipefail
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;27.0.12077973' 'cmake;3.22.1'
+      - name: Fetch private CI game input (never committed to Git)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ci-rom
+          gh release download ci-private-inputs --repo "$GITHUB_REPOSITORY" --pattern umk3-usa.md --dir ci-rom
       - name: Boot API 35 emulator and verify actual screen pixels
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
@@ -61,19 +67,24 @@ jobs:
           cores: 2
           ram-size: 3072M
           heap-size: 512M
-          disk-size: 4096M
+          disk-size: 2048M
           emulator-boot-timeout: 900
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
             set -euo pipefail
+            PKG=com.midoali.atari.debug
+            ./gradlew :android:installDebug --no-daemon --max-workers=2 --stacktrace \
+              -Pandroid.injected.build.abi=${{ matrix.abi }}
+            adb push ci-rom/umk3-usa.md /data/local/tmp/umk3.md
+            adb shell run-as "$PKG" cp /data/local/tmp/umk3.md files/umk3.md
             ./gradlew :android:connectedDebugAndroidTest --no-daemon --max-workers=2 --stacktrace \
               -Pandroid.injected.build.abi=${{ matrix.abi }} \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.midoali.atari.VideoInstrumentedTest \
+              -Pandroid.testInstrumentationRunnerArguments.class=com.midoali.atari.VideoInstrumentedTest,com.midoali.atari.ControlsInstrumentedTest \
+              -Pandroid.testInstrumentationRunnerArguments.rom=/data/data/$PKG/files/umk3.md \
               -Pandroid.testInstrumentationRunnerArguments.screenshots=true
             mkdir -p artifacts/device-captures
             adb logcat -d > artifacts/device-captures/logcat.txt || true
-            PKG=com.midoali.atari.debug
             for f in $(adb shell run-as "$PKG" ls files/test-captures 2>/dev/null | tr -d '\r'); do
               adb exec-out run-as "$PKG" cat "files/test-captures/$f" > "artifacts/device-captures/$f" || true
             done
