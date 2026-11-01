@@ -38,5 +38,5 @@
     <string name="menu_close">Close menu</string>
     <string name="gear_hint">Tap the gear at the top-left edge to open the side menu.</string>
     <string name="video_fallback">Switched to compatibility video renderer.</string>
-    <string name="native_ready">UMK3 Native ready</string>
+    <string name="native_ready">UMK3 0.7 video ready</string>
 </resources>

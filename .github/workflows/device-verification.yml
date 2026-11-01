@@ -74,23 +74,7 @@ jobs:
           emulator-boot-timeout: 900
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          script: |
-            set -eu
-            PKG=com.midoali.atari.debug
-            ./gradlew :android:installDebug --no-daemon --max-workers=2 --stacktrace \
-              -Pandroid.injected.build.abi=${{ matrix.abi }}
-            adb push ci-rom/umk3-usa.md /data/local/tmp/umk3.md
-            adb shell run-as "$PKG" cp /data/local/tmp/umk3.md files/umk3.md
-            ./gradlew :android:connectedDebugAndroidTest --no-daemon --max-workers=2 --stacktrace \
-              -Pandroid.injected.build.abi=${{ matrix.abi }} \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.midoali.atari.VideoInstrumentedTest,com.midoali.atari.ControlsInstrumentedTest \
-              -Pandroid.testInstrumentationRunnerArguments.rom=/data/data/$PKG/files/umk3.md \
-              -Pandroid.testInstrumentationRunnerArguments.screenshots=true
-            mkdir -p artifacts/device-captures
-            adb logcat -d > artifacts/device-captures/logcat.txt || true
-            for f in $(adb shell run-as "$PKG" ls files/test-captures 2>/dev/null | tr -d '\r'); do
-              adb exec-out run-as "$PKG" cat "files/test-captures/$f" > "artifacts/device-captures/$f" || true
-            done
+          script: bash tests/ci/device-video.sh ${{ matrix.abi }}
       - name: Upload device screenshots and reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
