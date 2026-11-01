@@ -68,12 +68,22 @@ public class ControlsInstrumentedTest {
         assertFalse("No RAM response for "+button,Arrays.equals(beforeRam,SegaCore.nativeTestRam(0,65536)));
         inject(event(a,MotionEvent.ACTION_UP,x,y));assertEquals(0,a.engineForTest().inputMask());SystemClock.sleep(250);
     }
+    private void shell(String command) {
+        try (android.os.ParcelFileDescriptor pfd = InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
+             java.io.InputStream in = new java.io.FileInputStream(pfd.getFileDescriptor())) {
+            byte[] buf = new byte[8192]; while (in.read(buf) != -1) { }
+        } catch (Exception ignored) { }
+    }
+    private void exportScreenshot(MainActivity a, File file, String name) {
+        shell("run-as " + a.getPackageName() + " cat '" + file.getAbsolutePath() + "' > /data/local/tmp/umk3-" + name + ".png");
+    }
     private void screenshot(MainActivity a,String name)throws Exception{
         new File(a.getFilesDir(),"test-captures").mkdirs();
         if(!"true".equals(InstrumentationRegistry.getArguments().getString("screenshots")))return;
         Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();assertNotNull(bitmap);
         File file=new File(a.getFilesDir(),"test-captures/"+name+".png");
         try(FileOutputStream out=new FileOutputStream(file)){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();
+        exportScreenshot(a,file,name);
     }
     @Test public void dispatchedMultitouchReachesRealGameAndSettingsPersist()throws Exception{
         String path=InstrumentationRegistry.getArguments().getString("rom");assertNotNull("Local ROM required",path);

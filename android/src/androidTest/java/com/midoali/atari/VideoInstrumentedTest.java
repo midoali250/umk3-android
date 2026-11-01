@@ -66,6 +66,15 @@ public class VideoInstrumentedTest {
     }
     interface Check { boolean ok(MainActivity a) throws Exception; }
 
+    private void shell(String command) {
+        try (android.os.ParcelFileDescriptor pfd = InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
+             java.io.InputStream in = new java.io.FileInputStream(pfd.getFileDescriptor())) {
+            byte[] buf = new byte[8192]; while (in.read(buf) != -1) { }
+        } catch (Exception ignored) { }
+    }
+    private void exportScreenshot(MainActivity a, File file, String name) {
+        shell("run-as " + a.getPackageName() + " cat '" + file.getAbsolutePath() + "' > /data/local/tmp/umk3-" + name + ".png");
+    }
     private Bitmap screenshot(MainActivity a, String name) throws Exception {
         Bitmap bitmap = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull("Android compositor screenshot unavailable", bitmap);
@@ -74,6 +83,7 @@ public class VideoInstrumentedTest {
             try (OutputStream out = new FileOutputStream(new File(dir, name + ".png"))) {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
             }
+            exportScreenshot(a, new File(dir, name + ".png"), name);
         }
         return bitmap;
     }

@@ -15,9 +15,13 @@ rc=0
   -Pandroid.injected.build.abi="$ABI" \
   -Pandroid.testInstrumentationRunnerArguments.class=com.midoali.atari.VideoInstrumentedTest,com.midoali.atari.ControlsInstrumentedTest \
   -Pandroid.testInstrumentationRunnerArguments.rom="/data/data/$PKG/files/umk3.md" \
-  -Pandroid.testInstrumentationRunnerArguments.screenshots=true || rc=$?
+  -Pandroid.testInstrumentationRunnerArguments.screenshots=true \
+  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || rc=$?
 
 mkdir -p artifacts/device-captures
+for f in $(adb shell ls /data/local/tmp/umk3-*.png 2>/dev/null | tr -d '\r'); do
+  adb pull "$f" artifacts/device-captures/ || true
+done
 adb exec-out screencap -p > artifacts/device-captures/screen.png || true
 adb logcat -d > artifacts/device-captures/logcat.txt || true
 adb shell run-as "$PKG" ls -la files/test-captures > artifacts/device-captures/test-captures-list.txt 2>&1 || true

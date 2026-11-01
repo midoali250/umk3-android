@@ -109,8 +109,8 @@ final class EmulatorEngine {
                 if (count < 0) throw new IllegalStateException("Emulator closed");
                 int width = metadata[0], height = metadata[1], coreSerial = metadata[2];
                 windowCoreMicros += Math.max(0, metadata[6]);
-                if (coreSerial != lastPublishedSerial && width > 0 && height > 0) {
-                    publishFrame(width, height, Float.intBitsToFloat(metadata[5]));
+                if (coreSerial != lastPublishedSerial && width > 0 && height > 0
+                        && publishFrame(width, height, Float.intBitsToFloat(metadata[5]))) {
                     lastPublishedSerial = coreSerial;
                 }
                 if (count > 0 && track.write(audio, 0, count * 2, AudioTrack.WRITE_BLOCKING) < 0)
@@ -139,10 +139,14 @@ final class EmulatorEngine {
             }
         }
     }
-    private void publishFrame(int width, int height, float aspect) {
+    private boolean publishFrame(int width, int height, float aspect) {
         Frame current = latest.get();
         for (Frame candidate : pool) {
-            if (candidate == current || !candidate.state.compareAndSet(0, 3)) continue;
+            if (candidate == current) continue;
+            // A previous READY frame that the renderer never acquired is safe to recycle.
+            // Only state 2 (actively being uploaded by the renderer) is pinned.
+            int state = candidate.state.get();
+            if (state == 2 || state == 3 || !candidate.state.compareAndSet(state, 3)) continue;
             video.position(0);
             video.get(candidate.pixels, 0, width * height * 2);
             video.clear();
@@ -152,9 +156,10 @@ final class EmulatorEngine {
             latest.set(candidate);
             Runnable listener = frameListener;
             if (listener != null) listener.run();
-            return;
+            return true;
         }
-        // All buffers are busy: keep the previous image instead of allocating or blocking.
+        // All buffers are busy: keep the previous image and retry on the next core frame.
+        return false;
     }
     private void updateAudioStatus() {
         if (track == null) return;

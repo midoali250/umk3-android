@@ -56,7 +56,17 @@ static void throw_java(JNIEnv *env, const char *type, const char *message) {
     if (cls) (*env)->ThrowNew(env, cls, message);
 }
 static void video_callback(const void *data, unsigned width, unsigned height, size_t pitch) {
-    if (debug_runs < 8) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "video_cb data=%p %ux%u pitch=%zu max=%zux%zu", data, width, height, pitch, max_width, max_height);
+    if (debug_runs < 8) {
+        unsigned first = 0, nonzero = 0;
+        if (data && width && height) {
+            memcpy(&first, data, sizeof(first));
+            for (unsigned x = 0; x < width && x < 256; ++x) {
+                uint16_t p; memcpy(&p, (const uint8_t *)data + x * 2, sizeof(p));
+                if (p) nonzero++;
+            }
+        }
+        __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "video_cb data=%p %ux%u pitch=%zu max=%zux%zu first=0x%04x nonzero=%u", data, width, height, pitch, max_width, max_height, first, nonzero);
+    }
     if (!data || width == 0 || height == 0 || width > max_width || height > max_height) return;
     uint16_t *destination = video_target;
     if (!destination) return;
