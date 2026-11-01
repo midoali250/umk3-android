@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 public final class MainActivity extends Activity {
     private static final int OPEN_ROM = 41;
     static final String EXTRA_TEST_ROM = "com.midoali.atari.TEST_ROM";
+    static final String EXTRA_TEST_NO_WATCHDOG = "com.midoali.atari.NO_WATCHDOG";
     private final EmulatorEngine engine = new EmulatorEngine();
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -48,7 +49,7 @@ public final class MainActivity extends Activity {
     private Button resumeButton, editDone;
     private ImageButton gear;
     private LinearLayout sidePanel;
-    private boolean foreground, userPaused, loading, destroyed, panelOpen, resumeAfterPanel;
+    private boolean foreground, userPaused, loading, destroyed, panelOpen, resumeAfterPanel, testNoWatchdog;
     private String bundledAsset;
     private final Runnable videoWatchdog = new Runnable() {
         @Override public void run() {
@@ -151,6 +152,7 @@ public final class MainActivity extends Activity {
         hideSystemBars();
 
         String testPath = BuildConfig.DEBUG ? getIntent().getStringExtra(EXTRA_TEST_ROM) : null;
+        testNoWatchdog = BuildConfig.DEBUG && getIntent().getBooleanExtra(EXTRA_TEST_NO_WATCHDOG, false);
         if (testPath != null) loadRom(new File(testPath));
         else if (bundledAsset != null) loadBundledRom(bundledAsset);
         else {
@@ -357,7 +359,7 @@ public final class MainActivity extends Activity {
                     loading = false; userPaused = false; settingsStore.preferences().edit().putString("lastRom", rom.getAbsolutePath()).apply();
                     status.setVisibility(View.GONE); controls.setInteractive(true); syncPause(); hideSystemBars();
                     video.requestFrame();
-                    handler.postDelayed(videoWatchdog, 4000);
+                    if (!testNoWatchdog) handler.postDelayed(videoWatchdog, 4000);
                     if (!settingsStore.preferences().getBoolean("gearHintShown", false)) {
                         Toast.makeText(this, getString(R.string.native_ready) + " v" + BuildConfig.VERSION_NAME + "\n" + getString(R.string.gear_hint), Toast.LENGTH_LONG).show();
                         settingsStore.preferences().edit().putBoolean("gearHintShown", true).apply();

@@ -106,7 +106,8 @@ public class VideoInstrumentedTest {
     @Test public void realAndroidScreenShowsGameAndTouchChangesPixels() throws Exception {
         ApplicationProvider.getApplicationContext().getSharedPreferences("sega-settings",0).edit().clear().commit();
         Intent intent = new Intent(ApplicationProvider.getApplicationContext(), MainActivity.class)
-                .putExtra(MainActivity.EXTRA_TEST_ROM, testRom().getAbsolutePath());
+                .putExtra(MainActivity.EXTRA_TEST_ROM, testRom().getAbsolutePath())
+                .putExtra(MainActivity.EXTRA_TEST_NO_WATCHDOG, true);
         try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(intent)) {
             await(scenario, a -> a.engineForTest().frame()!=null && a.videoForTest().presentedFrames()>120 && a.videoForTest().nonBlackFrameSeen());
             MainActivity a = activity(scenario);
@@ -125,14 +126,18 @@ public class VideoInstrumentedTest {
 
             for (int button : new int[]{SegaButtons.START, SegaButtons.A}) {
                 float[] p = button(a, button);
+                int serialBefore = a.engineForTest().frame().serial;
                 inject(event(a, MotionEvent.ACTION_DOWN, p[0], p[1]));
+                assertEquals("Touch did not reach engine for button "+button, 1 << button, a.engineForTest().inputMask());
                 SystemClock.sleep(600);
                 Bitmap pressed = screenshot(a, button==SegaButtons.START?"video-start":"video-a");
                 int[] after = centralStats(pressed); pressed.recycle();
-                int delta = Math.abs(after[0]-before[0])+Math.abs(after[1]-before[1])+Math.abs(after[2]-before[2]);
-                assertTrue("Touch "+button+" did not change on-screen game pixels (delta="+delta+")", delta > 30);
                 inject(event(a, MotionEvent.ACTION_UP, p[0], p[1]));
                 assertEquals(0, a.engineForTest().inputMask());
+                int serialAfter = a.engineForTest().frame().serial;
+                int delta = Math.abs(after[0]-before[0])+Math.abs(after[1]-before[1])+Math.abs(after[2]-before[2]);
+                assertTrue("Touch "+button+" did not change on-screen game pixels (delta="+delta
+                        +", frameSerial="+serialBefore+"->"+serialAfter+", presented="+a.videoForTest().presentedFrames()+")", delta > 30);
                 SystemClock.sleep(300);
             }
         }

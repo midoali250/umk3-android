@@ -28,7 +28,11 @@ public class ControlsInstrumentedTest {
             boolean[] ready={false};scenario.onActivity(a->{try{ready[0]=check.ok(a);}catch(Exception e){throw new RuntimeException(e);}});
             if(ready[0])return;SystemClock.sleep(100);
         }
-        fail("Timed out waiting for emulator / renderer");
+        MainActivity a=activity(scenario);EmulatorEngine e=a.engineForTest();EmulatorEngine.Frame f=e.frame();
+        fail("Timed out waiting for emulator / renderer; loaded="+e.isLoaded()+" error="+e.error()
+            +" fps="+e.stats().fps+" frame="+(f==null?"null":f.serial+":"+f.width+"x"+f.height)
+            +" videoSerial="+a.videoForTest().frameSerial()+" presented="+a.videoForTest().presentedFrames()
+            +" nonBlack="+a.videoForTest().nonBlackFrameSeen()+" surface="+a.videoForTest().getWidth()+"x"+a.videoForTest().getHeight());
     }
     private MainActivity activity(ActivityScenario<MainActivity> scenario){AtomicReference<MainActivity> ref=new AtomicReference<>();scenario.onActivity(ref::set);return ref.get();}
     private void multitouch(MainActivity a){
@@ -74,7 +78,7 @@ public class ControlsInstrumentedTest {
     @Test public void dispatchedMultitouchReachesRealGameAndSettingsPersist()throws Exception{
         String path=InstrumentationRegistry.getArguments().getString("rom");assertNotNull("Local ROM required",path);
         ApplicationProvider.getApplicationContext().getSharedPreferences("sega-settings",0).edit().clear().commit();
-        Intent intent=new Intent(ApplicationProvider.getApplicationContext(),MainActivity.class).putExtra(MainActivity.EXTRA_TEST_ROM,path);
+        Intent intent=new Intent(ApplicationProvider.getApplicationContext(),MainActivity.class).putExtra(MainActivity.EXTRA_TEST_ROM,path).putExtra(MainActivity.EXTRA_TEST_NO_WATCHDOG,true);
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(intent)){
             await(scenario,a->a.engineForTest().frame()!=null&&a.videoForTest().presentedFrames()>120);
             assertEquals(6,activity(scenario).controlsForTest().faceButtonCount());

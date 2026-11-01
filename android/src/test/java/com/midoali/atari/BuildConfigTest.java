@@ -19,7 +19,7 @@ public final class BuildConfigTest {
             assertEquals("com.midoali.atari", BuildConfig.APPLICATION_ID);
             assertEquals("0.7.0", BuildConfig.VERSION_NAME);
         }
-        assertEquals(6, BuildConfig.VERSION_CODE);
+        assertEquals(7, BuildConfig.VERSION_CODE);
     }
 
     @Test

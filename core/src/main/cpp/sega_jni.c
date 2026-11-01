@@ -45,7 +45,8 @@ static int16_t audio_buffer[AUDIO_CAPACITY];
 static size_t audio_count;
 static uint16_t *video_target;
 static bool video_updated;
-static unsigned debug_runs;
+static unsigned debug_runs, debug_inputs;
+static int debug_last_input = -1;
 static retro_audio_buffer_status_callback_t audio_status_cb;
 static unsigned audio_occupancy;
 static bool audio_active, audio_underrun;
@@ -133,7 +134,13 @@ static bool environment(unsigned command, void *data) {
     }
 }
 JNIEXPORT void JNICALL Java_com_midoali_atari_core_SegaCore_nativeSetInput(JNIEnv *env, jclass cls, jint mask) {
-    (void)env; (void)cls; atomic_store_explicit(&input_mask, mask & 0xfff, memory_order_relaxed);
+    (void)env; (void)cls;
+    int sanitized = mask & 0xfff;
+    if (sanitized != debug_last_input && debug_inputs < 32) {
+        __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "input mask=0x%x", sanitized);
+        debug_last_input = sanitized; debug_inputs++;
+    }
+    atomic_store_explicit(&input_mask, sanitized, memory_order_relaxed);
 }
 JNIEXPORT void JNICALL Java_com_midoali_atari_core_SegaCore_nativeSetSixButton(JNIEnv *env, jclass cls, jboolean enabled) {
     (void)env; (void)cls;
@@ -191,6 +198,7 @@ JNIEXPORT jboolean JNICALL Java_com_midoali_atari_core_SegaCore_nativeLoad(JNIEn
     retro_set_controller_port_device(0, sixButton ? RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 1) : RETRO_DEVICE_JOYPAD);
     frame_width = info.geometry.base_width; frame_height = info.geometry.base_height;
     frame_serial = 0; audio_count = 0; video_updated = false; audio_status_cb = NULL;
+    debug_runs = 0; debug_inputs = 0; debug_last_input = -1;
     loaded = true; success = true;
 release_path:
     (*env)->ReleaseStringUTFChars(env, path, utf);

@@ -20,7 +20,9 @@ rc=0
 mkdir -p artifacts/device-captures
 adb exec-out screencap -p > artifacts/device-captures/screen.png || true
 adb logcat -d > artifacts/device-captures/logcat.txt || true
-for f in $(adb shell run-as "$PKG" ls files/test-captures 2>/dev/null | tr -d '\r'); do
-  adb exec-out run-as "$PKG" cat "files/test-captures/$f" > "artifacts/device-captures/$f" || true
-done
+adb shell run-as "$PKG" ls -la files/test-captures > artifacts/device-captures/test-captures-list.txt 2>&1 || true
+adb exec-out run-as "$PKG" tar -cf - -C files test-captures > artifacts/device-captures/test-captures.tar 2>artifacts/device-captures/test-captures-tar-error.txt || true
+if [ -s artifacts/device-captures/test-captures.tar ]; then
+  tar -xf artifacts/device-captures/test-captures.tar -C artifacts/device-captures || true
+fi
 exit "$rc"
