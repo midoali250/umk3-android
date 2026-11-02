@@ -28,9 +28,9 @@
     </string-array>
     <string name="mute">كتم الصوت</string><string name="control_size">حجم أزرار التحكم</string><string name="control_opacity">شفافية أزرار التحكم</string>
     <string name="edit_layout">تحريك الأزرار على الشاشة</string><string name="reset_layout">استعادة مواضع وحجم الأزرار</string>
-    <string name="finish_layout">حفظ المواضع</string><string name="drag_controls">اسحب الاتجاهات أو X/Y/Z/A/B/C أو START، ثم احفظ.</string>
-    <string name="settings_explanation">أثناء الترتيب تتوقف اللعبة ولا تُرسل اللمسات مدخلات. تُحفظ المواضع والحجم والشفافية وخيارات الصورة تلقائيًا. ربط 6 أزرار: A→Y وB→B وC→A وX→L وY→X وZ→R.</string>
-    <string name="touch_controls_description">أزرار سيجا اللمسية: الاتجاهات وX وY وZ وA وB وC وStart</string>
+    <string name="finish_layout">حفظ المواضع</string><string name="drag_controls">اسحب عصا الاتجاهات أو X/Y/Z/A/B/C أو START أو نجمة النهائيات، ثم احفظ.</string>
+    <string name="settings_explanation">أثناء الترتيب تتوقف اللعبة ولا تُرسل اللمسات مدخلات. تُحفظ المواضع والحجم والشفافية وخيارات الصورة تلقائيًا. الأزرار في UMK3: A لكمة منخفضة، B صد/حجب، C رفسة منخفضة، X لكمة عالية، Y جري، Z رفسة عالية. عصا الاتجاهات حرة في الثماني جهات.</string>
+    <string name="touch_controls_description">أزرار سيجا اللمسية: عصا اتجاهات حرة وX وY وZ وA وB وC وStart وزر النهائيات</string>
     <string name="third_party_notices">التراخيص وتنبيه الاستخدام غير التجاري</string>
     <string name="video_surface_description">صورة لعبة جينيسيس</string>
     <string name="menu_open">فتح القائمة والإعدادات</string>
@@ -38,4 +38,17 @@
     <string name="gear_hint">اضغط على الترس أعلى يسار الشاشة لفتح القائمة الجانبية.</string>
     <string name="video_fallback">تم التبديل إلى وضع العرض المتوافق.</string>
     <string name="native_ready">UMK3 Native جاهزة</string>
+    <string name="open_moves">النهائيات والحركات الخاصة</string>
+    <string name="move_panel_title">النهائيات والحركات</string>
+    <string name="move_panel_hint">ضغطة واحدة تنفّذ الإدخال بالكامل. اللعبة تظل شغالة خلف هذه القائمة.</string>
+    <string name="move_panel_empty">لا توجد قائمة حركات لهذا المقاتل.</string>
+    <string name="move_mirror">عكس الاتجاهات (أنا واقف على اليمين)</string>
+    <string name="section_finishers">النهائيات والفينش</string>
+    <string name="section_extras">الصداقة · الطفولة · التحول</string>
+    <string name="section_specials">الحركات الخاصة</string>
+    <string name="distance_close">قريب</string>
+    <string name="distance_sweep">مسافة الكنس</string>
+    <string name="distance_far">بعيد</string>
+    <string name="distance_anywhere">أي مكان</string>
+    <string name="finish_button_hint">اضغط النجمة لفتح النهائيات، واضغط مطولًا لتكرار آخر حركة.</string>
 </resources>

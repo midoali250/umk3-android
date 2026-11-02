@@ -29,14 +29,27 @@
     </string-array>
     <string name="mute">Mute audio</string><string name="control_size">Control size</string><string name="control_opacity">Control opacity</string>
     <string name="edit_layout">Move controls on screen</string><string name="reset_layout">Reset layout and size</string>
-    <string name="finish_layout">Save layout</string><string name="drag_controls">Drag D-pad, X/Y/Z/A/B/C or START. Then save.</string>
-    <string name="settings_explanation">While editing, the game is paused and touches do not send input. Layout, size, opacity and video options are saved automatically. Six-button mapping: A→Y, B→B, C→A, X→L, Y→X, Z→R.</string>
-    <string name="touch_controls_description">Genesis touch controls: directional pad, X, Y, Z, A, B, C and Start</string>
+    <string name="finish_layout">Save layout</string><string name="drag_controls">Drag the stick pad, X/Y/Z/A/B/C, START or the finisher star. Then save.</string>
+    <string name="settings_explanation">While editing, the game is paused and touches do not send input. Layout, size, opacity and video options are saved automatically. Buttons in UMK3: A = low punch, B = block, C = low kick, X = high punch, Y = run, Z = high kick. The stick moves freely in all eight directions.</string>
+    <string name="touch_controls_description">Genesis touch controls: analog stick, X, Y, Z, A, B, C, Start and the finisher button</string>
     <string name="third_party_notices">Licenses / non-commercial notice</string>
     <string name="video_surface_description">Genesis game video</string>
     <string name="menu_open">Open menu and settings</string>
     <string name="menu_close">Close menu</string>
     <string name="gear_hint">Tap the gear at the top-left edge to open the side menu.</string>
     <string name="video_fallback">Switched to compatibility video renderer.</string>
-    <string name="native_ready">UMK3 0.7 video ready</string>
+    <string name="native_ready">UMK3 0.8 video ready</string>
+    <string name="open_moves">Finishers and special moves</string>
+    <string name="move_panel_title">Finishers &amp; moves</string>
+    <string name="move_panel_hint">One tap plays the whole input. The game keeps running behind this panel.</string>
+    <string name="move_panel_empty">No move table for this fighter.</string>
+    <string name="move_mirror">Mirror directions (I stand on the right)</string>
+    <string name="section_finishers">Fatalities &amp; finishers</string>
+    <string name="section_extras">Friendship · Babality · Animality</string>
+    <string name="section_specials">Special moves</string>
+    <string name="distance_close">close</string>
+    <string name="distance_sweep">sweep range</string>
+    <string name="distance_far">far</string>
+    <string name="distance_anywhere">anywhere</string>
+    <string name="finish_button_hint">Tap the star to open finishers, hold it to repeat the last move.</string>
 </resources>

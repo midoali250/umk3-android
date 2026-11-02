@@ -16,7 +16,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 @RunWith(AndroidJUnit4.class)
@@ -94,6 +98,82 @@ public class ControlsInstrumentedTest {
         try(FileOutputStream out=new FileOutputStream(file)){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();
         exportScreenshot(a,file,name);
     }
+    /** Free analog stick diagonals plus the one-tap finisher button, end to end. */
+    @Test public void analogStickDiagonalsAndOneTapFinisherReachTheCore()throws Exception{
+        String path=InstrumentationRegistry.getArguments().getString("rom");assertNotNull("Local ROM required",path);
+        ApplicationProvider.getApplicationContext().getSharedPreferences("sega-settings",0).edit().clear().commit();
+        Intent intent=new Intent(ApplicationProvider.getApplicationContext(),MainActivity.class).putExtra(MainActivity.EXTRA_TEST_ROM,path).putExtra(MainActivity.EXTRA_TEST_NO_WATCHDOG,true);
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(intent)){
+            await(scenario,a->a.engineForTest().frame()!=null&&a.videoForTest().presentedFrames()>120);
+            await(scenario,a->!a.engineForTest().isPaused());
+            MainActivity a=activity(scenario);
+            TouchControlsView v=a.controlsForTest();
+            float px=v.centerX(0),py=v.centerY(0),r=v.padRadius();
+            float diagonal=r*0.62f;
+            // Up + forward at once: the old cross could only report one axis in a tie.
+            inject(event(a,MotionEvent.ACTION_DOWN,px+diagonal,py-diagonal));
+            int upForward=(1<<SegaButtons.UP)|(1<<SegaButtons.RIGHT);
+            assertEquals("stick did not report the up-forward diagonal",upForward,a.engineForTest().inputMask());
+            assertTrue(a.controlsForTest().stickEngaged());
+            screenshot(a,"stick-diagonal");
+            // Slide the thumb across the centre to the opposite diagonal without lifting.
+            inject(event(a,MotionEvent.ACTION_MOVE,px-diagonal,py+diagonal));
+            int downBack=(1<<SegaButtons.DOWN)|(1<<SegaButtons.LEFT);
+            assertEquals("stick did not slide to the down-back diagonal",downBack,a.engineForTest().inputMask());
+            inject(event(a,MotionEvent.ACTION_MOVE,px+r*0.03f,py+r*0.03f));
+            assertEquals("stick dead zone did not release the direction",0,a.engineForTest().inputMask());
+            inject(event(a,MotionEvent.ACTION_UP,px,py));
+            assertEquals(0,a.engineForTest().inputMask());
+            // The FINISH star opens the one-tap move panel through the real touch path.
+            float fx=v.centerX(3),fy=v.centerY(3);
+            inject(event(a,MotionEvent.ACTION_DOWN,fx,fy));SystemClock.sleep(140);
+            inject(event(a,MotionEvent.ACTION_UP,fx,fy));
+            await(scenario,x->x.movePanelForTest()!=null&&x.movePanelForTest().isPanelOpen());
+            screenshot(a,"move-panel");
+            // Pick Cyrax -> Fatality 1 with a real click on the row.
+            scenario.onActivity(x->{
+                x.movePanelForTest().selectFighterForTest("Cyrax");
+                android.widget.Button row=x.movePanelForTest().findRowForTest("Fatality 1");
+                assertNotNull("Fatality 1 row is missing from the move panel",row);
+                row.performClick();
+            });
+            scenario.onActivity(x->assertFalse("move panel stayed open after choosing a move",x.movePanelForTest().isPanelOpen()));
+            // Sample what the native core actually polls while the macro plays.
+            Set<Integer> polled=new HashSet<>();
+            long deadline=SystemClock.uptimeMillis()+1600;
+            while(SystemClock.uptimeMillis()<deadline){polled.add(SegaCore.nativeTestInput(-1));SystemClock.sleep(6);}
+            String seen=polled.toString();
+            assertTrue("core never polled DOWN during the macro: "+seen,polled.contains(1<<SegaButtons.DOWN));
+            assertTrue("core never polled the final DOWN+X press: "+seen,
+                    polled.contains((1<<SegaButtons.DOWN)|(1<<SegaButtons.X)));
+            int[] history=new int[1];
+            scenario.onActivity(x->history[0]=x.macroForTest().history().length);
+            assertTrue("macro did not run: history="+history[0],history[0]>=9);
+            List<Integer> nonZero=new ArrayList<>();
+            int[] played=new int[1];
+            scenario.onActivity(x->{int[] h=x.macroForTest().history();for(int mask:h)if(mask!=0)nonZero.add(mask);played[0]=h[h.length-1];});
+            assertEquals(Arrays.asList(1<<SegaButtons.DOWN,1<<SegaButtons.DOWN,1<<SegaButtons.UP,
+                    1<<SegaButtons.DOWN,(1<<SegaButtons.DOWN)|(1<<SegaButtons.X)),nonZero);
+            assertEquals("macro did not release the pad",0,played[0]);
+            assertEquals(0,a.engineForTest().inputMask());
+            // Holding the star repeats the last move instantly instead of opening the panel.
+            int before=history[0];
+            inject(event(a,MotionEvent.ACTION_DOWN,fx,fy));SystemClock.sleep(900);
+            inject(event(a,MotionEvent.ACTION_UP,fx,fy));
+            final boolean[] replayed=new boolean[1];
+            deadline=SystemClock.uptimeMillis()+3000;
+            while(SystemClock.uptimeMillis()<deadline&&!replayed[0]){
+                scenario.onActivity(x->replayed[0]=!x.macroForTest().isRunning()
+                        &&x.macroForTest().history().length>=9&&x.macroForTest().lastStartMillis()>0);
+                SystemClock.sleep(50);
+            }
+            assertTrue("long press did not replay the last finisher",replayed[0]);
+            scenario.onActivity(x->assertFalse("long press opened the panel",x.movePanelForTest().isPanelOpen()));
+            screenshot(a,"finisher-one-tap");
+            assertTrue(before>=9);
+        }
+    }
+
     @Test public void dispatchedMultitouchReachesRealGameAndSettingsPersist()throws Exception{
         String path=InstrumentationRegistry.getArguments().getString("rom");assertNotNull("Local ROM required",path);
         ApplicationProvider.getApplicationContext().getSharedPreferences("sega-settings",0).edit().clear().commit();

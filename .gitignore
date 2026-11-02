@@ -35,3 +35,6 @@ roms/*
 
 # Private CI inputs downloaded from a private release, never committed.
 ci-rom/
+
+# Cached third-party move-list pages (regenerate with tools/generate_moves.py)
+tools/move-lists/

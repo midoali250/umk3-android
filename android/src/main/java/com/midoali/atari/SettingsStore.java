@@ -20,6 +20,8 @@ final class SettingsStore {
             value.faceY = prefs.getFloat("faceY", value.faceY);
             value.startX = prefs.getFloat("startX", value.startX);
             value.startY = prefs.getFloat("startY", value.startY);
+            value.finishX = prefs.getFloat("finishX", value.finishX);
+            value.finishY = prefs.getFloat("finishY", value.finishY);
             value.setScale(prefs.getFloat("scale", value.scale));
             value.sixButton = prefs.getBoolean("sixButton", true);
             value.showBorders = prefs.getBoolean("showBorders", true);
@@ -35,6 +37,7 @@ final class SettingsStore {
         value.move(0, value.padX, value.padY);
         value.move(1, value.faceX, value.faceY);
         value.move(2, value.startX, value.startY);
+        value.move(3, value.finishX, value.finishY);
         if (!migrated) save(value);
         return value;
     }
@@ -43,6 +46,7 @@ final class SettingsStore {
                 .putFloat("padX", value.padX).putFloat("padY", value.padY)
                 .putFloat("faceX", value.faceX).putFloat("faceY", value.faceY)
                 .putFloat("startX", value.startX).putFloat("startY", value.startY)
+                .putFloat("finishX", value.finishX).putFloat("finishY", value.finishY)
                 .putFloat("scale", value.scale).putFloat("opacity", value.opacity)
                 .putBoolean("bilinear", value.bilinear).putBoolean("haptics", value.haptics)
                 .putBoolean("sixButton", value.sixButton).putBoolean("showBorders", value.showBorders)

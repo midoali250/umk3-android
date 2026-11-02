@@ -26,6 +26,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.midoali.atari.core.ControlLayout;
+import com.midoali.atari.core.MacroPlan;
+import com.midoali.atari.core.MoveData;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -51,6 +53,11 @@ public final class MainActivity extends Activity {
     private LinearLayout sidePanel;
     private boolean foreground, userPaused, loading, destroyed, panelOpen, resumeAfterPanel, testNoWatchdog;
     private String bundledAsset;
+    private MovePanel movePanel;
+    private MacroRunner macro;
+    private MoveData.Move lastMove;
+    private String fighter = MoveData.CHARACTER_NAMES[0];
+    private boolean mirrorMoves;
     private final Runnable videoWatchdog = new Runnable() {
         @Override public void run() {
             if (destroyed || usingFallback || !engine.isLoaded()) return;
@@ -119,8 +126,15 @@ public final class MainActivity extends Activity {
         root.addView(video, new FrameLayout.LayoutParams(-1, -1));
         root.addView(fallbackVideo, new FrameLayout.LayoutParams(-1, -1));
 
+        fighter = settingsStore.preferences().getString("fighter", fighter);
+        mirrorMoves = settingsStore.preferences().getBoolean("mirrorMoves", false);
+        macro = new MacroRunner(engine::setInput);
         controls = new TouchControlsView(this);
-        controls.setLayout(layout); controls.setInputSink(engine::setInput);
+        controls.setLayout(layout);
+        // A running macro owns the pad: stray stick input would break the fatality sequence.
+        controls.setInputSink(mask -> { if (!macro.isRunning()) engine.setInput(mask); });
+        controls.setFinishListener(this::openMovePanel);
+        controls.setFinishRepeatListener(this::repeatLastMove);
         root.addView(controls, new FrameLayout.LayoutParams(-1, -1));
 
         gear = new ImageButton(this);
@@ -148,6 +162,18 @@ public final class MainActivity extends Activity {
         status = new TextView(this); status.setTextColor(Color.WHITE); status.setTextSize(17); status.setGravity(Gravity.CENTER);
         status.setPadding(dp(28), dp(70), dp(28), dp(28)); status.setText(R.string.import_hint);
         root.addView(status, new FrameLayout.LayoutParams(-1, -1));
+
+        movePanel = new MovePanel(this, new MovePanel.Listener() {
+            @Override public void onMoveChosen(MoveData.Move move, String fighterName, boolean mirrored) {
+                playMove(move, fighterName, mirrored);
+            }
+            @Override public void onFighterChanged(String fighterName, boolean mirrored) {
+                fighter = fighterName; mirrorMoves = mirrored;
+                settingsStore.preferences().edit().putString("fighter", fighterName)
+                        .putBoolean("mirrorMoves", mirrored).apply();
+            }
+        }, fighter, mirrorMoves);
+        root.addView(movePanel, new FrameLayout.LayoutParams(-1, -1));
         setContentView(root);
         hideSystemBars();
 
@@ -233,10 +259,29 @@ public final class MainActivity extends Activity {
         content.addView(resetLayout, new LinearLayout.LayoutParams(-1, dp(44)));
         perf = new TextView(this); perf.setTextColor(0xffb0c4d8); perf.setPadding(0, dp(10), 0, dp(4)); content.addView(perf);
         TextView explanation = new TextView(this); explanation.setText(R.string.settings_explanation); explanation.setTextColor(0xff90a4b8); explanation.setTextSize(12); content.addView(explanation);
+        Button moves = actionButton(R.string.open_moves, v -> { closePanel(); openMovePanel(); });
+        content.addView(moves, new LinearLayout.LayoutParams(-1, dp(44)));
         Button notices = actionButton(R.string.third_party_notices, v -> showNotices());
         content.addView(notices, new LinearLayout.LayoutParams(-1, dp(44)));
     }
 
+    private void openMovePanel() {
+        if (movePanel == null || movePanel.isPanelOpen()) return;
+        movePanel.show(fighter, mirrorMoves);
+        hideSystemBars();
+    }
+    private void playMove(MoveData.Move move, String fighterName, boolean mirrored) {
+        lastMove = move; fighter = fighterName; mirrorMoves = mirrored;
+        settingsStore.preferences().edit().putString("fighter", fighterName)
+                .putBoolean("mirrorMoves", mirrored).apply();
+        controls.clearInput();
+        macro.start(MacroPlan.of(move, mirrored));
+        Toast.makeText(this, move.displayName(), Toast.LENGTH_SHORT).show();
+    }
+    private void repeatLastMove() {
+        if (lastMove == null) { openMovePanel(); return; }
+        playMove(lastMove, fighter, mirrorMoves);
+    }
     private void togglePanel() { if (panelOpen) closePanel(); else openPanel(); }
     private void openPanel() {
         if (panelOpen) return;
@@ -386,7 +431,10 @@ public final class MainActivity extends Activity {
         else super.onBackPressed();
     }
     @Override protected void onResume() { super.onResume(); foreground = true; syncPause(); hideSystemBars(); video.requestFrame(); fallbackVideo.requestFrame(); }
-    @Override protected void onPause() { foreground = false; controls.clearInput(); engine.setPaused(true); engine.persistSave(); handler.removeCallbacks(updatePerf); super.onPause(); }
+    @Override protected void onPause() {
+        foreground = false; controls.clearInput(); if (macro != null) macro.cancel();
+        engine.setPaused(true); engine.persistSave(); handler.removeCallbacks(updatePerf); super.onPause();
+    }
     @Override protected void onDestroy() { destroyed = true; handler.removeCallbacksAndMessages(null); engine.close(); io.shutdown(); video.release(); fallbackVideo.release(); super.onDestroy(); }
     @Override public void onWindowFocusChanged(boolean focused) { super.onWindowFocusChanged(focused); if (focused) hideSystemBars(); }
     private void hideSystemBars() { getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE); }
@@ -398,6 +446,16 @@ public final class MainActivity extends Activity {
     ControlLayout layoutForTest() { return layout; }
     ImageButton gearForTest() { return gear; }
     boolean isSidePanelOpen() { return panelOpen; }
+    MovePanel movePanelForTest() { return movePanel; }
+    MacroRunner macroForTest() { return macro; }
+    MoveData.Move lastMoveForTest() { return lastMove; }
+    /** Test hook: run a move exactly like the panel does. */
+    void playMoveForTest(String fighterName, String moveName) {
+        for (MoveData.Move move : MoveData.movesFor(fighterName)) {
+            if (move.name.equalsIgnoreCase(moveName)) { playMove(move, fighterName, mirrorMoves); return; }
+        }
+        throw new IllegalArgumentException("no such move: " + fighterName + " " + moveName);
+    }
     private abstract static class SimpleSeek implements SeekBar.OnSeekBarChangeListener {
         @Override public void onStartTrackingTouch(SeekBar bar) { }
         @Override public void onStopTrackingTouch(SeekBar bar) { }
