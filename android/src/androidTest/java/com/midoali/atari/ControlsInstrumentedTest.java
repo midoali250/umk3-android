@@ -115,6 +115,9 @@ public class ControlsInstrumentedTest {
             int upForward=(1<<SegaButtons.UP)|(1<<SegaButtons.RIGHT);
             assertEquals("stick did not report the up-forward diagonal",upForward,a.engineForTest().inputMask());
             assertTrue(a.controlsForTest().stickEngaged());
+            // The knob must be drawn where the finger pulled it, not left at the centre.
+            assertTrue("stick knob did not follow the finger",a.controlsForTest().stickOffsetX()>r*0.3f);
+            assertTrue(a.controlsForTest().stickOffsetY()<-r*0.3f);
             screenshot(a,"stick-diagonal");
             // Slide the thumb across the centre to the opposite diagonal without lifting.
             inject(event(a,MotionEvent.ACTION_MOVE,px-diagonal,py+diagonal));
@@ -129,6 +132,22 @@ public class ControlsInstrumentedTest {
             inject(event(a,MotionEvent.ACTION_DOWN,fx,fy));SystemClock.sleep(140);
             inject(event(a,MotionEvent.ACTION_UP,fx,fy));
             await(scenario,x->x.movePanelForTest()!=null&&x.movePanelForTest().isPanelOpen());
+            // Every fighter offers at least its two fatalities plus a few special moves.
+            scenario.onActivity(x->{
+                MovePanel panel=x.movePanelForTest();
+                int width=x.controlsForTest().getWidth(),height=x.controlsForTest().getHeight();
+                int minimum=Integer.MAX_VALUE;String worst="";
+                for(String fighterName:com.midoali.atari.core.MoveData.CHARACTER_NAMES){
+                    panel.selectFighterForTest(fighterName);
+                    panel.layoutForTest(width,height);
+                    int rows=0;
+                    for(int i=0;i<panel.listForTest().getChildCount();++i)
+                        if(panel.listForTest().getChildAt(i) instanceof android.widget.Button)rows++;
+                    if(rows<minimum){minimum=rows;worst=fighterName;}
+                }
+                assertTrue("move panel is thin for "+worst+": "+minimum+" rows",minimum>=7);
+                panel.selectFighterForTest("Cyrax");
+            });
             screenshot(a,"move-panel");
             // Pick Cyrax -> Fatality 1 with a real click on the row.
             scenario.onActivity(x->{
@@ -138,24 +157,28 @@ public class ControlsInstrumentedTest {
                 row.performClick();
             });
             scenario.onActivity(x->assertFalse("move panel stayed open after choosing a move",x.movePanelForTest().isPanelOpen()));
-            // Sample what the native core actually polls while the macro plays.
-            Set<Integer> polled=new HashSet<>();
-            long deadline=SystemClock.uptimeMillis()+1600;
-            while(SystemClock.uptimeMillis()<deadline){polled.add(SegaCore.nativeTestInput(-1));SystemClock.sleep(6);}
-            String seen=polled.toString();
-            assertTrue("core never polled DOWN during the macro: "+seen,polled.contains(1<<SegaButtons.DOWN));
-            assertTrue("core never polled the final DOWN+X press: "+seen,
-                    polled.contains((1<<SegaButtons.DOWN)|(1<<SegaButtons.X)));
+            // Sample what the native core actually polls while the macro plays. Cyrax's
+            // Fatality 1 is DOWN, DOWN, UP, DOWN, High Punch as five separate presses.
+            List<Integer> observed=new ArrayList<>();
+            long deadline=SystemClock.uptimeMillis()+2600;
+            while(SystemClock.uptimeMillis()<deadline){
+                int mask=SegaCore.nativeTestInput(-1);
+                if(observed.isEmpty()||observed.get(observed.size()-1)!=mask)observed.add(mask);
+                SystemClock.sleep(4);
+            }
+            while(!observed.isEmpty()&&observed.get(observed.size()-1)==0)observed.remove(observed.size()-1);
+            while(!observed.isEmpty()&&observed.get(0)==0)observed.remove(0);
+            int down=1<<SegaButtons.DOWN,up=1<<SegaButtons.UP,highPunch=1<<SegaButtons.X;
+            assertEquals("core did not see the five distinct presses: "+observed,
+                    Arrays.asList(down,0,down,0,up,0,down,0,highPunch),observed);
             int[] history=new int[1];
             scenario.onActivity(x->history[0]=x.macroForTest().history().length);
-            assertTrue("macro did not run: history="+history[0],history[0]>=9);
-            List<Integer> nonZero=new ArrayList<>();
-            int[] played=new int[1];
-            scenario.onActivity(x->{int[] h=x.macroForTest().history();for(int mask:h)if(mask!=0)nonZero.add(mask);played[0]=h[h.length-1];});
-            assertEquals(Arrays.asList(1<<SegaButtons.DOWN,1<<SegaButtons.DOWN,1<<SegaButtons.UP,
-                    1<<SegaButtons.DOWN,(1<<SegaButtons.DOWN)|(1<<SegaButtons.X)),nonZero);
-            assertEquals("macro did not release the pad",0,played[0]);
+            List<Integer> played=new ArrayList<>();
+            scenario.onActivity(x->{for(int mask:x.macroForTest().history())played.add(mask);});
+            assertEquals(Arrays.asList(down,0,down,0,up,0,down,0,highPunch,0),played);
+            assertEquals("macro did not release the pad",Integer.valueOf(0),played.get(played.size()-1));
             assertEquals(0,a.engineForTest().inputMask());
+            assertFalse(a.macroForTest().isRunning());
             // Holding the star repeats the last move instantly instead of opening the panel.
             int before=history[0];
             inject(event(a,MotionEvent.ACTION_DOWN,fx,fy));SystemClock.sleep(900);

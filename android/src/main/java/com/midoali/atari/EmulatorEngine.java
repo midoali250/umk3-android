@@ -199,6 +199,8 @@ final class EmulatorEngine {
     boolean isLoaded() { return running && !closed; }
     boolean isPaused() { return paused; }
     int inputMask() { return input.get(); }
+    /** Number of frames published by the core; used to pace scripted input. */
+    int frames() { return serial.get(); }
     void setFrameListener(Runnable listener) { frameListener = listener; }
     void setSixButton(boolean value) {
         sixButton = value;

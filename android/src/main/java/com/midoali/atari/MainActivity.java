@@ -128,7 +128,7 @@ public final class MainActivity extends Activity {
 
         fighter = settingsStore.preferences().getString("fighter", fighter);
         mirrorMoves = settingsStore.preferences().getBoolean("mirrorMoves", false);
-        macro = new MacroRunner(engine::setInput);
+        macro = new MacroRunner(engine::setInput, engine::frames);
         controls = new TouchControlsView(this);
         controls.setLayout(layout);
         // A running macro owns the pad: stray stick input would break the fatality sequence.

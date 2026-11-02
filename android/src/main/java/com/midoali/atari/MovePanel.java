@@ -260,4 +260,11 @@ final class MovePanel extends FrameLayout {
     }
 
     private int dp(float value) { return Math.round(value * activity.getResources().getDisplayMetrics().density); }
+
+    /** Lays the list out with a plain measure/layout pass (used for offscreen panel sizing). */
+    void layoutForTest(int width, int height) {
+        measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
+        layout(0, 0, width, height);
+    }
 }
