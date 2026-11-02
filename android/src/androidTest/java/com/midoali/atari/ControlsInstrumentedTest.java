@@ -171,12 +171,17 @@ public class ControlsInstrumentedTest {
             while(!observed.isEmpty()&&observed.get(observed.size()-1)==0)observed.remove(observed.size()-1);
             while(!observed.isEmpty()&&observed.get(0)==0)observed.remove(0);
             int down=1<<SegaButtons.DOWN,up=1<<SegaButtons.UP,highPunch=1<<SegaButtons.X;
-            // The sampler runs on the test thread and can miss a release window, so compare
-            // against the de-duplicated stream: the core must still see DOWN, UP, DOWN, X.
-            List<Integer> distinct=new ArrayList<>();
-            for(int mask:observed)if(distinct.isEmpty()||distinct.get(distinct.size()-1)!=mask)distinct.add(mask);
-            assertEquals("core did not see four distinct presses: "+observed,
-                    Arrays.asList(down,up,down,highPunch),distinct);
+            // Count the presses the core saw. Two DOWN presses can only be counted
+            // separately when the core also polled the release between them, which is
+            // exactly what UMK3 requires for DOWN, DOWN.
+            List<Integer> presses=new ArrayList<>();
+            int previous=0;
+            for(int mask:observed){
+                if(mask!=0&&mask!=previous)presses.add(mask);
+                previous=mask;
+            }
+            assertEquals("core did not see DOWN, DOWN, UP, DOWN, High Punch: "+observed,
+                    Arrays.asList(down,down,up,down,highPunch),presses);
             int[] history=new int[1];
             scenario.onActivity(x->history[0]=x.macroForTest().history().length);
             List<Integer> played=new ArrayList<>();
