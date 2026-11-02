@@ -65,6 +65,15 @@ public class ControlsInstrumentedTest {
         MotionEvent e=MotionEvent.obtain(dragDownTime,now,action,1,props,coords,0,0,1,1,0,0,InputDevice.SOURCE_TOUCHSCREEN,0);return e;
     }
     private void inject(MotionEvent e){assertTrue(InstrumentationRegistry.getInstrumentation().getUiAutomation().injectInputEvent(e,true));e.recycle();}
+    /** Injected streams can be reordered or coalesced by the input pipeline; wait briefly. */
+    private void awaitMask(MainActivity a,int expected,String what){
+        long deadline=SystemClock.uptimeMillis()+1500;
+        while(SystemClock.uptimeMillis()<deadline){
+            if(a.engineForTest().inputMask()==expected)return;
+            SystemClock.sleep(20);
+        }
+        assertEquals(what,expected,a.engineForTest().inputMask());
+    }
     private void tap(MainActivity a,int button,int holdMillis){
         TouchControlsView v=a.controlsForTest();float x,y;
         if(button==SegaButtons.START){x=v.centerX(2);y=v.centerY(2);}
@@ -114,7 +123,7 @@ public class ControlsInstrumentedTest {
             // One gesture stream (shared down time), exactly like a real thumb drag.
             inject(dragEvent(a,MotionEvent.ACTION_DOWN,px+diagonal,py-diagonal));
             int upForward=(1<<SegaButtons.UP)|(1<<SegaButtons.RIGHT);
-            assertEquals("stick did not report the up-forward diagonal",upForward,a.engineForTest().inputMask());
+            awaitMask(a,upForward,"stick did not report the up-forward diagonal");
             assertTrue(a.controlsForTest().stickEngaged());
             // The knob must be drawn where the finger pulled it, not left at the centre.
             assertTrue("stick knob did not follow the finger",a.controlsForTest().stickOffsetX()>r*0.3f);
@@ -123,11 +132,11 @@ public class ControlsInstrumentedTest {
             // Slide the thumb across the centre to the opposite diagonal without lifting.
             inject(dragEvent(a,MotionEvent.ACTION_MOVE,px-diagonal,py+diagonal));
             int downBack=(1<<SegaButtons.DOWN)|(1<<SegaButtons.LEFT);
-            assertEquals("stick did not slide to the down-back diagonal",downBack,a.engineForTest().inputMask());
+            awaitMask(a,downBack,"stick did not slide to the down-back diagonal");
             inject(dragEvent(a,MotionEvent.ACTION_MOVE,px+r*0.03f,py+r*0.03f));
-            assertEquals("stick dead zone did not release the direction",0,a.engineForTest().inputMask());
+            awaitMask(a,0,"stick dead zone did not release the direction");
             inject(dragEvent(a,MotionEvent.ACTION_UP,px+r*0.03f,py+r*0.03f));
-            assertEquals(0,a.engineForTest().inputMask());
+            awaitMask(a,0,"stick did not release on touch up");
             // The FINISH star opens the one-tap move panel through the real touch path.
             float fx=v.centerX(3),fy=v.centerY(3);
             inject(event(a,MotionEvent.ACTION_DOWN,fx,fy));SystemClock.sleep(140);
