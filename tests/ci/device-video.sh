@@ -8,6 +8,11 @@ PKG=com.midoali.atari.debug
 
 # Prevent Android's first-run immersive-mode confirmation from covering the game.
 adb shell settings put secure immersive_mode_confirmations confirmed || true
+# A "Pixel Launcher isn't responding" dialog steals focus and every injected touch, which
+# made three verified tests look broken. Suppress system error dialogs on this emulator.
+adb shell settings put global hide_error_dialogs 1 || true
+adb shell settings put secure anr_show_background 0 || true
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
 
 adb push ci-rom/umk3-usa.md /data/local/tmp/umk3.md
 adb shell run-as "$PKG" mkdir -p files
