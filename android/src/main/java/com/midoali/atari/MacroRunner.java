@@ -20,10 +20,14 @@ final class MacroRunner {
     interface Sink { void send(int mask); }
     interface FrameSource { int frames(); }
 
-    /** Emulated frames each synthetic press stays down. About 66 ms at 60 Hz. */
-    static final int PRESS_FRAMES = 4;
-    /** Emulated frames between two presses. */
-    static final int GAP_FRAMES = 3;
+    /** Emulated frames each synthetic press stays down. About 83 ms at 60 Hz. */
+    static final int PRESS_FRAMES = 5;
+    /**
+     * Emulated frames between two presses. The game must poll the button released between
+     * two taps of the same direction (DOWN, DOWN), so the gap is deliberately as long as
+     * the press itself instead of one or two frames.
+     */
+    static final int GAP_FRAMES = 5;
     /** Safety net: never wait longer than this for a frame (paused or stalled core). */
     static final long FRAME_TIMEOUT_MILLIS = 200;
 
