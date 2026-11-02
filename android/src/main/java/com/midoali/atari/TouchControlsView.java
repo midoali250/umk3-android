@@ -180,8 +180,10 @@ public final class TouchControlsView extends View {
         float px = layout.padX * getWidth(), py = layout.padY * getHeight();
         int alpha = (int)(layout.opacity * 255);
         paint.setAlpha(255);
+        // Translucent so the fight stays visible under the stick; the ring keeps the area
+        // readable over bright arenas.
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(Color.argb((int)(layout.opacity * 105), 20, 24, 30));
+        paint.setColor(Color.argb((int)(layout.opacity * 58), 20, 24, 30));
         canvas.drawCircle(px, py, padRadius, paint);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(Math.max(2f, 2.2f * density));
