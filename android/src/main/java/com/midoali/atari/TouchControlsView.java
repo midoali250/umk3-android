@@ -158,6 +158,7 @@ public final class TouchControlsView extends View {
             circle(canvas, faceX(i), faceY(i), faceRadius, FACE_COLORS[i], (lastMask & (1 << id)) != 0, FACE_LABELS[i]);
         }
         float sx = layout.startX * getWidth(), sy = layout.startY * getHeight();
+        paint.setAlpha(255);
         startRect.set(sx - startRadius * 1.6f, sy - startRadius, sx + startRadius * 1.6f, sy + startRadius);
         paint.setStyle(Paint.Style.FILL); paint.setColor(Color.argb((int)(layout.opacity * 220), 55, 60, 72));
         canvas.drawRoundRect(startRect, startRadius, startRadius, paint);
@@ -178,6 +179,7 @@ public final class TouchControlsView extends View {
     private void drawStick(Canvas canvas) {
         float px = layout.padX * getWidth(), py = layout.padY * getHeight();
         int alpha = (int)(layout.opacity * 255);
+        paint.setAlpha(255);
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(Color.argb((int)(layout.opacity * 105), 20, 24, 30));
         canvas.drawCircle(px, py, padRadius, paint);
@@ -213,6 +215,7 @@ public final class TouchControlsView extends View {
     }
 
     private void drawFinish(Canvas canvas) {
+        paint.setAlpha(255);
         float fx = finishX(), fy = finishY();
         boolean down = finishDown || longPressFired;
         paint.setStyle(Paint.Style.FILL);
