@@ -289,6 +289,12 @@ public final class TouchControlsView extends View {
                 constrainLayout();
             } else if (!editing) {
                 int stickSlot = slot(stickId);
+                if (stickSlot < 0 && pointerCount == 1 && inStickZone(pointerX[0], pointerY[0])) {
+                    // The finger may have started just outside the ring (or the system split
+                    // the gesture); engage the stick as soon as it slides onto the pad.
+                    stickId = pointerIds[0];
+                    stickSlot = 0;
+                }
                 if (stickSlot >= 0) steerStick(pointerX[stickSlot], pointerY[stickSlot]);
                 int finishSlot = slot(finishId);
                 if (finishSlot >= 0 && finishDown &&

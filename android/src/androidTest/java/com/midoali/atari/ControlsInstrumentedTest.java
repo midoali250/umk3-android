@@ -111,7 +111,8 @@ public class ControlsInstrumentedTest {
             float px=v.centerX(0),py=v.centerY(0),r=v.padRadius();
             float diagonal=r*0.62f;
             // Up + forward at once: the old cross could only report one axis in a tie.
-            inject(event(a,MotionEvent.ACTION_DOWN,px+diagonal,py-diagonal));
+            // One gesture stream (shared down time), exactly like a real thumb drag.
+            inject(dragEvent(a,MotionEvent.ACTION_DOWN,px+diagonal,py-diagonal));
             int upForward=(1<<SegaButtons.UP)|(1<<SegaButtons.RIGHT);
             assertEquals("stick did not report the up-forward diagonal",upForward,a.engineForTest().inputMask());
             assertTrue(a.controlsForTest().stickEngaged());
@@ -120,12 +121,12 @@ public class ControlsInstrumentedTest {
             assertTrue(a.controlsForTest().stickOffsetY()<-r*0.3f);
             screenshot(a,"stick-diagonal");
             // Slide the thumb across the centre to the opposite diagonal without lifting.
-            inject(event(a,MotionEvent.ACTION_MOVE,px-diagonal,py+diagonal));
+            inject(dragEvent(a,MotionEvent.ACTION_MOVE,px-diagonal,py+diagonal));
             int downBack=(1<<SegaButtons.DOWN)|(1<<SegaButtons.LEFT);
             assertEquals("stick did not slide to the down-back diagonal",downBack,a.engineForTest().inputMask());
-            inject(event(a,MotionEvent.ACTION_MOVE,px+r*0.03f,py+r*0.03f));
+            inject(dragEvent(a,MotionEvent.ACTION_MOVE,px+r*0.03f,py+r*0.03f));
             assertEquals("stick dead zone did not release the direction",0,a.engineForTest().inputMask());
-            inject(event(a,MotionEvent.ACTION_UP,px,py));
+            inject(dragEvent(a,MotionEvent.ACTION_UP,px+r*0.03f,py+r*0.03f));
             assertEquals(0,a.engineForTest().inputMask());
             // The FINISH star opens the one-tap move panel through the real touch path.
             float fx=v.centerX(3),fy=v.centerY(3);
