@@ -76,9 +76,13 @@ public class VideoInstrumentedTest {
         shell("run-as " + a.getPackageName() + " cat '" + file.getAbsolutePath() + "' > /data/local/tmp/umk3-" + name + ".png");
     }
     private Bitmap screenshot(MainActivity a, String name) throws Exception {
+        return screenshot(a, name, true);
+    }
+
+    private Bitmap screenshot(MainActivity a, String name, boolean save) throws Exception {
         Bitmap bitmap = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull("Android compositor screenshot unavailable", bitmap);
-        if ("true".equals(InstrumentationRegistry.getArguments().getString("screenshots"))) {
+        if (save && "true".equals(InstrumentationRegistry.getArguments().getString("screenshots"))) {
             File dir = new File(a.getFilesDir(), "test-captures"); dir.mkdirs();
             try (OutputStream out = new FileOutputStream(new File(dir, name + ".png"))) {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
@@ -141,15 +145,28 @@ public class VideoInstrumentedTest {
                 int serialBefore = a.engineForTest().frame().serial;
                 inject(event(a, MotionEvent.ACTION_DOWN, p[0], p[1]));
                 assertEquals("Touch did not reach engine for button "+button, 1 << button, a.engineForTest().inputMask());
-                SystemClock.sleep(600);
-                Bitmap pressed = screenshot(a, button==SegaButtons.START?"video-start":"video-a");
-                int[] after = centralStats(pressed); pressed.recycle();
+                // A held button must change the pixels on screen. Screenshots go through the
+                // compositor, which can hand back a stale SurfaceView frame while the render
+                // thread is catching up, so keep sampling until the change is visible.
+                String name = button==SegaButtons.START?"video-start":"video-a";
+                int delta = 0, attempts = 0;
+                long deadline = SystemClock.uptimeMillis() + 6000;
+                while (SystemClock.uptimeMillis() < deadline) {
+                    int[] after;
+                    Bitmap pressed = screenshot(a, name, false);
+                    after = centralStats(pressed); pressed.recycle();
+                    delta = Math.abs(after[0]-before[0])+Math.abs(after[1]-before[1])+Math.abs(after[2]-before[2]);
+                    ++attempts;
+                    if (delta > 30) { Bitmap saved = screenshot(a, name); saved.recycle(); break; }
+                    assertEquals("Button "+button+" was released while sampling", 1 << button, a.engineForTest().inputMask());
+                    SystemClock.sleep(150);
+                }
                 inject(event(a, MotionEvent.ACTION_UP, p[0], p[1]));
                 assertEquals(0, a.engineForTest().inputMask());
                 int serialAfter = a.engineForTest().frame().serial;
-                int delta = Math.abs(after[0]-before[0])+Math.abs(after[1]-before[1])+Math.abs(after[2]-before[2]);
                 assertTrue("Touch "+button+" did not change on-screen game pixels (delta="+delta
-                        +", frameSerial="+serialBefore+"->"+serialAfter+", presented="+a.videoForTest().presentedFrames()+")", delta > 30);
+                        +", attempts="+attempts+", frameSerial="+serialBefore+"->"+serialAfter
+                        +", presented="+a.videoForTest().presentedFrames()+")", delta > 30);
                 SystemClock.sleep(300);
             }
         }

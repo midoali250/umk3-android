@@ -41,6 +41,7 @@ final class EmulatorEngine {
     private final Frame[] pool = {new Frame(), new Frame(), new Frame()};
     private final AtomicReference<Frame> latest = new AtomicReference<>();
     private final AtomicInteger serial = new AtomicInteger();
+    private final AtomicInteger emulatedFrames = new AtomicInteger();
     private final Object saveMonitor = new Object();
     private final AudioTimestamp timestamp = new AudioTimestamp();
     private volatile boolean running, paused, muted, closed, disposed, saveRequested;
@@ -106,6 +107,7 @@ final class EmulatorEngine {
             try {
                 updateAudioStatus();
                 int count = SegaCore.nativeRun(audio, video, metadata);
+                emulatedFrames.incrementAndGet();
                 if (count < 0) throw new IllegalStateException("Emulator closed");
                 int width = metadata[0], height = metadata[1], coreSerial = metadata[2];
                 windowCoreMicros += Math.max(0, metadata[6]);
@@ -199,8 +201,11 @@ final class EmulatorEngine {
     boolean isLoaded() { return running && !closed; }
     boolean isPaused() { return paused; }
     int inputMask() { return input.get(); }
-    /** Number of frames published by the core; used to pace scripted input. */
-    int frames() { return serial.get(); }
+    /**
+     * Number of frames the core has emulated. Scripted input is paced on this counter, so a
+     * busy renderer can never stretch or collapse a synthetic button press.
+     */
+    int frames() { return emulatedFrames.get(); }
     void setFrameListener(Runnable listener) { frameListener = listener; }
     void setSixButton(boolean value) {
         sixButton = value;

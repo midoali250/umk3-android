@@ -97,9 +97,12 @@ final class MovePanel extends FrameLayout {
         scroll.addView(list);
         card.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
 
+        // Docked to the right edge so the fighters stay visible: a fatality has to be typed
+        // while "FINISH HIM" is on screen, so the panel must not hide the fight.
         FrameLayout.LayoutParams cardParams = new FrameLayout.LayoutParams(
-                Math.min(dp(420), (int)(activity.getResources().getDisplayMetrics().widthPixels * 0.62f)), -1, Gravity.CENTER);
-        cardParams.topMargin = dp(8); cardParams.bottomMargin = dp(8);
+                Math.min(dp(400), (int)(activity.getResources().getDisplayMetrics().widthPixels * 0.54f)),
+                -1, Gravity.END);
+        cardParams.topMargin = dp(8); cardParams.bottomMargin = dp(8); cardParams.rightMargin = dp(6);
         addView(card, cardParams);
 
         fighter.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
@@ -162,7 +165,7 @@ final class MovePanel extends FrameLayout {
                 header.setPadding(0, dp(8), 0, dp(2));
                 list.addView(header);
             }
-            list.addView(row(move), new LinearLayout.LayoutParams(-1, dp(44)));
+            list.addView(row(move), new LinearLayout.LayoutParams(-1, dp(50)));
         }
         if (moves.isEmpty()) {
             TextView empty = new TextView(activity);
@@ -182,7 +185,10 @@ final class MovePanel extends FrameLayout {
     private Button row(MoveData.Move move) {
         Button button = new Button(activity);
         button.setAllCaps(false);
-        button.setTextSize(12);
+        button.setTextSize(11);
+        button.setSingleLine(false);
+        button.setMaxLines(2);
+        button.setEllipsize(null);
         button.setTextColor(Color.WHITE);
         GradientDrawable background = new GradientDrawable();
         background.setColor(move.category == MoveData.CATEGORY_FATALITY ? 0xff5c1f28 : 0xff23303d);
@@ -207,7 +213,7 @@ final class MovePanel extends FrameLayout {
             text.append(" · ").append(distanceLabel(move.distance));
         }
         String sequence = humanSequence(move);
-        if (!sequence.isEmpty()) text.append("  [").append(sequence).append(']');
+        if (!sequence.isEmpty()) text.append('\n').append(sequence);
         return text.toString();
     }
 
