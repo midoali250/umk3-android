@@ -101,7 +101,11 @@ final class MacroRunner {
         }
     }
 
+    private int lastWritten;
+
     private synchronized void write(int mask) {
+        if (mask == lastWritten) return; // no redundant pad writes
+        lastWritten = mask;
         if (history.size() < 64) history.add(mask);
         sink.send(mask);
     }
