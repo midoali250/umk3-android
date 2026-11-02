@@ -110,7 +110,7 @@ adb shell am instrument -w -r \
 - [x] بناء وتصدير APK وCI، ورفع APK الشخصي على GitHub والتحقق من البايتات المرفوعة.
 - [ ] اختبار على هاتف فعلي واسع التنوع (لم يُجرَ بعد).
 
-[صور الإثبات الفعلية من Android](docs/proof/umk3-android.png)
+[صور الإثبات الفعلية من Android](docs/proof/umk3-android-0.8.png)
 
 ## الأمان وحقوق الألعاب
 
