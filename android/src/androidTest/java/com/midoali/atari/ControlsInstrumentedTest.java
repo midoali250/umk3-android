@@ -151,7 +151,20 @@ public class ControlsInstrumentedTest {
                 panel.selectFighterForTest("Cyrax");
             });
             screenshot(a,"move-panel");
-            // Pick Cyrax -> Fatality 1 with a real click on the row.
+            // Sample the native core from a warm background thread so no press window is
+            // missed, then play Cyrax -> Fatality 1 with a real click on the row.
+            final List<Integer> sampled=java.util.Collections.synchronizedList(new ArrayList<>());
+            final boolean[] sampling={true};
+            Thread sampler=new Thread(()->{
+                while(sampling[0]){
+                    int mask=SegaCore.nativeTestInput(-1);
+                    synchronized(sampled){
+                        if(sampled.isEmpty()||sampled.get(sampled.size()-1)!=mask)sampled.add(mask);
+                    }
+                    SystemClock.sleep(1);
+                }
+            },"core-sampler");
+            sampler.setDaemon(true);sampler.start();SystemClock.sleep(120);
             scenario.onActivity(x->{
                 x.movePanelForTest().selectFighterForTest("Cyrax");
                 android.widget.Button row=x.movePanelForTest().findRowForTest("Fatality 1");
@@ -159,22 +172,21 @@ public class ControlsInstrumentedTest {
                 row.performClick();
             });
             scenario.onActivity(x->assertFalse("move panel stayed open after choosing a move",x.movePanelForTest().isPanelOpen()));
-            // Sample what the native core actually polls while the macro plays. Cyrax's
-            // Fatality 1 is DOWN, DOWN, UP, DOWN, High Punch as five separate presses.
-            List<Integer> observed=new ArrayList<>();
-            long deadline=SystemClock.uptimeMillis()+4200;
-            while(SystemClock.uptimeMillis()<deadline){
-                int mask=SegaCore.nativeTestInput(-1);
-                if(observed.isEmpty()||observed.get(observed.size()-1)!=mask)observed.add(mask);
-                SystemClock.sleep(2);
+            long deadline=SystemClock.uptimeMillis()+3000;
+            final boolean[] finished={false};
+            while(SystemClock.uptimeMillis()<deadline&&!finished[0]){
+                scenario.onActivity(x->finished[0]=!x.macroForTest().isRunning());SystemClock.sleep(20);
             }
+            SystemClock.sleep(250);
+            sampling[0]=false;sampler.join(2000);
+            List<Integer> observed;List<Integer> presses=new ArrayList<>();
+            synchronized(sampled){observed=new ArrayList<>(sampled);}
             while(!observed.isEmpty()&&observed.get(observed.size()-1)==0)observed.remove(observed.size()-1);
             while(!observed.isEmpty()&&observed.get(0)==0)observed.remove(0);
             int down=1<<SegaButtons.DOWN,up=1<<SegaButtons.UP,highPunch=1<<SegaButtons.X;
             // Count the presses the core saw. Two DOWN presses can only be counted
             // separately when the core also polled the release between them, which is
             // exactly what UMK3 requires for DOWN, DOWN.
-            List<Integer> presses=new ArrayList<>();
             int previous=0;
             for(int mask:observed){
                 if(mask!=0&&mask!=previous)presses.add(mask);
@@ -182,8 +194,6 @@ public class ControlsInstrumentedTest {
             }
             assertEquals("core did not see DOWN, DOWN, UP, DOWN, High Punch: "+observed,
                     Arrays.asList(down,down,up,down,highPunch),presses);
-            int[] history=new int[1];
-            scenario.onActivity(x->history[0]=x.macroForTest().history().length);
             List<Integer> played=new ArrayList<>();
             scenario.onActivity(x->{for(int mask:x.macroForTest().history())played.add(mask);});
             assertEquals(Arrays.asList(down,0,down,0,up,0,down,0,highPunch,0),played);
@@ -191,7 +201,7 @@ public class ControlsInstrumentedTest {
             assertEquals(0,a.engineForTest().inputMask());
             assertFalse(a.macroForTest().isRunning());
             // Holding the star repeats the last move instantly instead of opening the panel.
-            int before=history[0];
+            int before=played.size();
             inject(event(a,MotionEvent.ACTION_DOWN,fx,fy));SystemClock.sleep(900);
             inject(event(a,MotionEvent.ACTION_UP,fx,fy));
             final boolean[] replayed=new boolean[1];
@@ -204,7 +214,7 @@ public class ControlsInstrumentedTest {
             assertTrue("long press did not replay the last finisher",replayed[0]);
             scenario.onActivity(x->assertFalse("long press opened the panel",x.movePanelForTest().isPanelOpen()));
             screenshot(a,"finisher-one-tap");
-            assertTrue(before>=9);
+            assertTrue(before>=10);
         }
     }
 
