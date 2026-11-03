@@ -62,10 +62,16 @@ public class CheatInstrumentedTest {
         float x, y;
         if (button == SegaButtons.START) {
             x = view.centerX(2); y = view.centerY(2);
-        } else if (button == SegaButtons.A) {
-            x = view.faceX(0); y = view.faceY(0);
+        } else if (button == SegaButtons.A || button == SegaButtons.B || button == SegaButtons.C
+                || button == SegaButtons.X || button == SegaButtons.Y || button == SegaButtons.Z) {
+            int index = button == SegaButtons.A ? 0 : button == SegaButtons.B ? 1 : button == SegaButtons.C ? 2
+                    : button == SegaButtons.X ? 3 : button == SegaButtons.Y ? 4 : 5;
+            x = view.faceX(index); y = view.faceY(index);
         } else {
-            x = view.centerX(0); y = view.centerY(0);
+            x = view.centerX(0) + (button == SegaButtons.LEFT ? -view.padRadius() * .7f
+                    : button == SegaButtons.RIGHT ? view.padRadius() * .7f : 0);
+            y = view.centerY(0) + (button == SegaButtons.UP ? -view.padRadius() * .7f
+                    : button == SegaButtons.DOWN ? view.padRadius() * .7f : 0);
         }
         inject(event(activity, MotionEvent.ACTION_DOWN, x, y));
         SystemClock.sleep(holdMillis);
@@ -144,14 +150,15 @@ public class CheatInstrumentedTest {
             scenario.onActivity(a -> a.gearForTest().performClick());
             await(scenario, a -> !a.isSidePanelOpen() && !a.engineForTest().isPaused());
 
-            // Walk the attract screen into a real match.
-            tap(activity, SegaButtons.START, 300); SystemClock.sleep(9000);
-            tap(activity, SegaButtons.START, 300); SystemClock.sleep(9000);
-            tap(activity, SegaButtons.A, 250); SystemClock.sleep(5000);
-            tap(activity, SegaButtons.START, 300); SystemClock.sleep(7000);
-            for (int attempt = 0; attempt < 8 && !SegaCore.nativeTestInMatch(); attempt++) {
-                tap(activity, SegaButtons.A, 200);
-                SystemClock.sleep(2000);
+            // Walk the attract screen into a real match with the same rhythm the
+            // other device tests use: title, main menu, mode select, fighter pick.
+            tap(activity, SegaButtons.START, 300); SystemClock.sleep(12000);
+            tap(activity, SegaButtons.START, 300); SystemClock.sleep(12000);
+            tap(activity, SegaButtons.C, 300); SystemClock.sleep(2000);
+            tap(activity, SegaButtons.C, 300); SystemClock.sleep(12000);
+            for (int attempt = 0; attempt < 10 && !SegaCore.nativeTestInMatch(); attempt++) {
+                tap(activity, attempt % 2 == 0 ? SegaButtons.C : SegaButtons.START, 300);
+                SystemClock.sleep(4000);
             }
             assertTrue("never reached a live match", SegaCore.nativeTestInMatch());
 
