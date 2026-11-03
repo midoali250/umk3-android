@@ -116,6 +116,28 @@ public class CheatInstrumentedTest {
         await(scenario, a -> !a.isSidePanelOpen() && !a.engineForTest().isPaused());
     }
 
+    /** Saves a device screenshot next to the other tests' captures. */
+    private void screenshot(MainActivity activity, String name) throws Exception {
+        if (!"true".equals(InstrumentationRegistry.getArguments().getString("screenshots"))) return;
+        android.graphics.Bitmap bitmap =
+                InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+        assertNotNull("screenshot unavailable", bitmap);
+        java.io.File directory = new java.io.File(activity.getFilesDir(), "test-captures");
+        assertTrue(directory.isDirectory() || directory.mkdirs());
+        java.io.File file = new java.io.File(directory, name + ".png");
+        try (java.io.FileOutputStream out = new java.io.FileOutputStream(file)) {
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
+        }
+        bitmap.recycle();
+        try (android.os.ParcelFileDescriptor pfd = InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation().executeShellCommand("run-as " + activity.getPackageName()
+                        + " cat '" + file.getAbsolutePath() + "' > /data/local/tmp/umk3-" + name + ".png");
+             java.io.InputStream in = new java.io.FileInputStream(pfd.getFileDescriptor())) {
+            byte[] buffer = new byte[8192];
+            while (in.read(buffer) != -1) { /* drain */ }
+        }
+    }
+
     private static int ram(int address) {
         byte[] bytes = SegaCore.nativeTestRam(address, 1);
         assertNotNull("work RAM unreadable at 0x" + Integer.toHexString(address), bytes);
@@ -162,6 +184,8 @@ public class CheatInstrumentedTest {
             }
             assertTrue("never reached a live match", SegaCore.nativeTestInMatch());
 
+            screenshot(activity, "cheats-match");
+
             // 1. The round clock runs on its own.
             int first = ram(TIME_UNITS);
             boolean ticked = false;
@@ -183,6 +207,7 @@ public class CheatInstrumentedTest {
                 SystemClock.sleep(250);
             }
             assertTrue("too few clock samples to trust the result", frozen >= 12);
+            screenshot(activity, "cheats-frozen-clock");
 
             // 3. Tearing it off hands the clock back to the game.
             setSwitch(scenario, Cheats.FROZEN_CLOCK, false);
@@ -206,8 +231,16 @@ public class CheatInstrumentedTest {
                 SystemClock.sleep(120);
             }
             assertEquals("life moved while infinite energy was on", full, lowest);
+            screenshot(activity, "cheats-infinite-energy");
 
-            // 5. The switches are persisted and advertised on screen.
+            // 5. The drawer itself, with the switches armed.
+            scenario.onActivity(a -> a.gearForTest().performClick());
+            await(scenario, MainActivity::isSidePanelOpen);
+            screenshot(activity, "cheats-panel");
+            scenario.onActivity(a -> a.gearForTest().performClick());
+            await(scenario, a -> !a.isSidePanelOpen());
+
+            // 6. The switches are persisted and advertised on screen.
             scenario.onActivity(a -> {
                 assertEquals(1 << Cheats.INFINITE_ENERGY, new SettingsStore(a).loadCheats());
                 assertEquals(View.VISIBLE, a.cheatBadgeForTest().getVisibility());
