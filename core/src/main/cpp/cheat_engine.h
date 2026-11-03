@@ -28,6 +28,13 @@ int sega_cheats_stats(int id);
 int sega_cheats_apply(uint8_t *ram, size_t size);
 /* 1 while the game is in a match and the engine is allowed to write. */
 int sega_cheats_in_match(const uint8_t *ram, size_t size);
+/* 1 when a switch that locks a meter is on, i.e. when the 68K write handlers
+ * from cheat_hook.c are needed. */
+int sega_cheats_guard_needed(void);
+/* Called from the 68K write handlers before the store lands: rewrites *value
+ * so a locked meter can never be written down. `offset` is the array offset. */
+void sega_cheats_guard_byte(const uint8_t *ram, size_t size, unsigned offset, unsigned *value);
+void sega_cheats_guard_word(const uint8_t *ram, size_t size, unsigned offset, unsigned *value);
 
 #ifdef __cplusplus
 }

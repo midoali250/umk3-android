@@ -6,7 +6,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/genesis_sources.cmake)
 # cheat_engine.c is our code, not upstream: it is linked into the phone
 # library and into the host build so tools/verify_cheats.py can drive the
 # exact same logic.
-add_library(genesis_core OBJECT ${GENESIS_SOURCES} cheat_engine.c)
+add_library(genesis_core OBJECT ${GENESIS_SOURCES} cheat_engine.c cheat_hook.c)
 target_include_directories(genesis_core PRIVATE
   ${GENESIS_DIR}/core ${GENESIS_DIR}/core/z80 ${GENESIS_DIR}/core/m68k
   ${GENESIS_DIR}/core/ntsc ${GENESIS_DIR}/core/sound ${GENESIS_DIR}/core/sound/minimp3

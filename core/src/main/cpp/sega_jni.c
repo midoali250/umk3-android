@@ -9,6 +9,7 @@
 #include <time.h>
 #include <android/log.h>
 #include "cheat_engine.h"
+#include "cheat_hook.h"
 #include "genesis-plus-gx/libretro/libretro-common/include/libretro.h"
 
 #define MAX_ROM (16u * 1024u * 1024u)
@@ -55,6 +56,7 @@ static bool audio_active, audio_underrun;
 /* Thin bridge: the cheat logic lives in cheat_engine.c so the host build can
  * run the very same code (see tools/verify_cheats.py). */
 static void apply_cheats(void) {
+    sega_cheats_hook_sync();   /* install/remove the 68K write guard first */
     uint8_t *ram = loaded ? (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM) : NULL;
     size_t size = loaded ? retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM) : 0;
     if (ram) sega_cheats_apply(ram, size);

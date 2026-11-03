@@ -52,6 +52,43 @@ int sega_cheats_in_match(const uint8_t *ram, size_t size) {
     return (ram && size > RAM_MATCH_FLAG && ram[RAM_MATCH_FLAG]) ? 1 : 0;
 }
 
+int sega_cheats_guard_needed(void) {
+    int mask = atomic_load(&cheat_mask);
+    return (mask & ((1 << SEGA_CHEAT_HEALTH) | (1 << SEGA_CHEAT_RUN))) ? 1 : 0;
+}
+
+/* The lock only holds while the opponent is still standing: once a round is
+ * decided the game clears both meters as part of its own housekeeping, and
+ * swallowing that would hang the transition. */
+static int guarding(const uint8_t *ram, size_t size) {
+    if (!sega_cheats_in_match(ram, size)) return 0;
+    if (size <= RAM_P2_HEALTH) return 0;
+    return ram[RAM_P2_HEALTH] > 0;
+}
+
+void sega_cheats_guard_byte(const uint8_t *ram, size_t size, unsigned offset, unsigned *value) {
+    int mask = atomic_load(&cheat_mask);
+    unsigned lane = offset ^ 1u;   /* 68K byte access lane inside the word array */
+    if (!mask || !value || !guarding(ram, size)) return;
+    if ((mask & (1 << SEGA_CHEAT_HEALTH)) && lane == RAM_P1_HEALTH && max_health &&
+        (*value & 0xFFu) < max_health)
+        *value = max_health;
+    if ((mask & (1 << SEGA_CHEAT_RUN)) && lane == RAM_P1_RUN && max_run &&
+        (*value & 0xFFu) < max_run)
+        *value = max_run;
+}
+
+void sega_cheats_guard_word(const uint8_t *ram, size_t size, unsigned offset, unsigned *value) {
+    int mask = atomic_load(&cheat_mask);
+    if (!mask || !value || !guarding(ram, size)) return;
+    if ((mask & (1 << SEGA_CHEAT_HEALTH)) && offset == RAM_P1_HEALTH && max_health &&
+        (*value & 0xFFu) < max_health)
+        *value = (*value & 0xFF00u) | max_health;
+    if ((mask & (1 << SEGA_CHEAT_RUN)) && offset == RAM_P1_RUN && max_run &&
+        (*value & 0xFFu) < max_run)
+        *value = (*value & 0xFF00u) | max_run;
+}
+
 int sega_cheats_apply(uint8_t *ram, size_t size) {
     if (!ram || size <= RAM_MATCH_FLAG) return 0;
     if (!ram[RAM_MATCH_FLAG]) {

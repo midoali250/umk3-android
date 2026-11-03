@@ -84,6 +84,8 @@ class Lab:
         lib.sega_cheats_apply.restype = C.c_int
         lib.sega_cheats_apply.argtypes = [C.c_void_p, C.c_size_t]
         lib.sega_cheats_set.argtypes = [C.c_int, C.c_int]
+        lib.sega_cheats_hook_sync.restype = None
+        lib.sega_cheats_hook_active.restype = C.c_int
 
     def _boot(self, rom_path):
         lib = self.lib
@@ -124,8 +126,12 @@ class Lab:
 
     # -- driving -----------------------------------------------------------
     def apply_cheats(self):
-        """Hand live work RAM to the shipped engine (sega_cheats_apply)."""
+        """Exactly what nativeRun() does between frames."""
+        self.lib.sega_cheats_hook_sync()
         return self.lib.sega_cheats_apply(self.ram_ptr, self.ram_size)
+
+    def hook_active(self):
+        return bool(self.lib.sega_cheats_hook_active())
 
     def run(self, n, apply=True):
         for _ in range(n):

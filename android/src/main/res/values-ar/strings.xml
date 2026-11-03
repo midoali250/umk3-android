@@ -53,7 +53,7 @@
     <string name="finish_button_hint">اضغط النجمة لفتح النهائيات، واضغط مطولًا لتكرار آخر حركة.</string>
     <string name="cheats_title">وظايف الغش</string>
     <string name="cheats_note">تُطبَّق على المباراة الجارية فورًا وتُحفظ للمرة القادمة، ولا تلمس القوائم أبدًا.</string>
-    <string name="cheat_infinite_energy">طاقة لا نهائية (اللاعب الأول)</string>
+    <string name="cheat_infinite_energy">طاقة لا نهائية — الشريط ما ينقصش أبدًا</string>
     <string name="cheat_infinite_run">جري لا نهائي</string>
     <string name="cheat_frozen_clock">تثبيت الوقت على 99</string>
     <string name="cheat_one_hit_ko">ضربة واحدة تُسقط الخصم</string>

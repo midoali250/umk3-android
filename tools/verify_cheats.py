@@ -65,6 +65,40 @@ def clock(record):
     return [t['time_tens'] + t['time_units'] for t in record['timeline']]
 
 
+def bar_width(image):
+    """Filled width in pixels of player one's life bar on one frame."""
+    px = image.crop((0, 0, 320, 40)).load()
+    best = 0
+    for y in range(20, 34):
+        run = 0
+        for x in range(16, 154):
+            r, g, b = px[x, y]
+            lit = (b > 120 and b > r + 60 and b > g + 40) or (g > 130 and g > r + 60 and g > b + 20)
+            run = run + 1 if lit else 0
+            best = max(best, run)
+    return best
+
+
+def per_frame(lib, rom, out, name, cheats, frames):
+    """Sample the health byte and the drawn bar on EVERY frame of a fight."""
+    lab = Lab(lib, rom, out, cheats)
+    try:
+        assert lab.to_fight(), f'{name}: never reached a fight'
+        healths, widths = [], []
+        for _ in range(frames):
+            lab.attack(1)
+            lab.apply_cheats()
+            healths.append(lab.ram[ADDR['p1_health']])
+            widths.append(bar_width(lab.rgb()))
+        return dict(name=name, cheats=list(cheats), frames=frames, hook=lab.hook_active(),
+                    health_min=min(healths), health_max=max(healths),
+                    bar_min=min(widths), bar_max=max(widths),
+                    health_dips=sum(1 for h in healths if h < 0xA6),
+                    bar_dips=sum(1 for w in widths if w < 118))
+    finally:
+        lab.close()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('lib')
@@ -128,6 +162,16 @@ def main():
           and p2[0] == 0xA6,
           'life stayed at zero for a whole sample window, i.e. the engine ran its K.O.')
 
+    # 6. Frame by frame: with the lock on, the bar may not dip even once.
+    off = per_frame(args.lib, args.rom, out, 'perframe-off', [], 600)
+    on = per_frame(args.lib, args.rom, out, 'perframe-on', ['health'], 900)
+    check('bar really does dip without the lock', off['bar_dips'] > 100,
+          f"{off['bar_dips']} of {off['frames']} frames drew a shorter bar; lowest life 0x{off['health_min']:02X}")
+    check('no single-frame dip with the lock on', on['bar_dips'] == 0 and on['health_dips'] == 0,
+          f"{on['frames']} consecutive frames of taking hits: life {on['health_min']}..{on['health_max']}, "
+          f"bar {on['bar_min']}..{on['bar_max']}px, zero dips"
+          f" (68K write guard {'installed' if on['hook'] else 'NOT installed'})")
+
     # Contact sheet with captions.
     rows = (len(shots[:6]) + 1) // 2
     sheet = Image.new('RGB', (640, 30 + rows * 250 + 10), (24, 28, 34))
@@ -139,7 +183,8 @@ def main():
         draw.text((x + 6, y + 228), CAPTIONS[name], fill=(180, 220, 255))
     sheet.save(args.sheet)
 
-    result = dict(passed=all(c['ok'] for c in checks), checks=checks, scenarios=[base, hp, tm, run_on, ko])
+    result = dict(passed=all(c['ok'] for c in checks), checks=checks,
+                  scenarios=[base, hp, tm, run_on, ko], per_frame=[off, on])
     (out / 'cheat-proof.json').write_text(json.dumps(result, indent=2))
     print(json.dumps(dict(passed=result['passed'], checks=len(checks),
                           sheet=str(args.sheet), json=str(out / 'cheat-proof.json'))))

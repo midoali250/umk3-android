@@ -54,7 +54,7 @@
     <string name="finish_button_hint">Tap the star to open finishers, hold it to repeat the last move.</string>
     <string name="cheats_title">Cheat functions</string>
     <string name="cheats_note">Applied to the fight that is already running, and remembered for next time. They only touch the match in progress, never the menus.</string>
-    <string name="cheat_infinite_energy">Infinite energy (player one)</string>
+    <string name="cheat_infinite_energy">Infinite energy — the bar never goes down</string>
     <string name="cheat_infinite_run">Infinite run meter</string>
     <string name="cheat_frozen_clock">Freeze the clock at 99</string>
     <string name="cheat_one_hit_ko">One hit K.O. for the opponent</string>
