@@ -25,6 +25,7 @@ import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.midoali.atari.core.Cheats;
 import com.midoali.atari.core.ControlLayout;
 import com.midoali.atari.core.MacroPlan;
 import com.midoali.atari.core.MoveData;
@@ -58,6 +59,8 @@ public final class MainActivity extends Activity {
     private MoveData.Move lastMove;
     private String fighter = MoveData.CHARACTER_NAMES[0];
     private boolean mirrorMoves;
+    private int cheatMask;
+    private TextView cheatBadge;
     private final Runnable videoWatchdog = new Runnable() {
         @Override public void run() {
             if (destroyed || usingFallback || !engine.isLoaded()) return;
@@ -114,6 +117,7 @@ public final class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         settingsStore = new SettingsStore(this); layout = settingsStore.load();
+        cheatMask = settingsStore.loadCheats();
         bundledAsset = findBundledRomAsset();
         FrameLayout root = new FrameLayout(this); root.setBackgroundColor(Color.BLACK);
 
@@ -152,6 +156,20 @@ public final class MainActivity extends Activity {
         FrameLayout.LayoutParams gearParams = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP | Gravity.START);
         gearParams.setMargins(dp(8), dp(8), dp(8), dp(8));
         root.addView(gear, gearParams);
+
+        cheatBadge = new TextView(this);
+        cheatBadge.setTextColor(0xffffd23f); cheatBadge.setTextSize(12); cheatBadge.setTypeface(null, android.graphics.Typeface.BOLD);
+        cheatBadge.setPadding(dp(8), dp(3), dp(8), dp(3));
+        GradientDrawable badgeBg = new GradientDrawable();
+        badgeBg.setCornerRadius(dp(10)); badgeBg.setColor(0xb0101820);
+        badgeBg.setStroke(dp(1), 0x80ffd23f);
+        cheatBadge.setBackground(badgeBg);
+        cheatBadge.setVisibility(View.GONE);
+        cheatBadge.setClickable(false); cheatBadge.setFocusable(false);
+        FrameLayout.LayoutParams badgeParams = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.START);
+        badgeParams.setMargins(dp(8), dp(56), dp(8), dp(8));
+        root.addView(cheatBadge, badgeParams);
+        applyCheatMask(cheatMask, false);
 
         buildSidePanel(root);
 
@@ -227,6 +245,7 @@ public final class MainActivity extends Activity {
     }
 
     private void buildSettingsContent(LinearLayout content) {
+        buildCheatSection(content);
         CheckBox six = new CheckBox(this); six.setText(R.string.six_button); six.setChecked(layout.sixButton); six.setTextColor(Color.WHITE); content.addView(six);
         six.setOnCheckedChangeListener((v, checked) -> { layout.sixButton = checked; engine.setSixButton(checked); controls.setLayout(layout); settingsStore.save(layout); });
         spinner(content, R.string.video_quality, R.array.video_quality_modes, layout.videoMode, new SimpleSpinner() {
@@ -263,6 +282,53 @@ public final class MainActivity extends Activity {
         content.addView(moves, new LinearLayout.LayoutParams(-1, dp(44)));
         Button notices = actionButton(R.string.third_party_notices, v -> showNotices());
         content.addView(notices, new LinearLayout.LayoutParams(-1, dp(44)));
+    }
+
+    /** Turns one switch on or off: native first, then the stored mask and the badge. */
+    void setCheat(int cheat, boolean enabled) {
+        cheatMask = Cheats.with(cheatMask, cheat, enabled);
+        engine.setCheat(cheat, enabled);
+        settingsStore.saveCheats(cheatMask);
+        updateCheatBadge();
+    }
+
+    void applyCheatMask(int mask, boolean pushToCore) {
+        cheatMask = Cheats.clamp(mask);
+        if (pushToCore) engine.applyCheats(cheatMask);
+        settingsStore.saveCheats(cheatMask);
+        updateCheatBadge();
+    }
+
+    private void updateCheatBadge() {
+        if (cheatBadge == null) return;
+        int active = Cheats.count(cheatMask);
+        if (active == 0) { cheatBadge.setVisibility(View.GONE); return; }
+        cheatBadge.setText(getString(R.string.cheat_badge, active));
+        cheatBadge.setVisibility(View.VISIBLE);
+    }
+
+    private void buildCheatSection(LinearLayout content) {
+        TextView header = new TextView(this);
+        header.setText(R.string.cheats_title); header.setTextColor(0xffffd23f);
+        header.setTextSize(15); header.setTypeface(null, android.graphics.Typeface.BOLD);
+        header.setPadding(0, dp(10), 0, dp(2));
+        content.addView(header);
+        TextView note = new TextView(this);
+        note.setText(R.string.cheats_note); note.setTextColor(0xff90a4b8); note.setTextSize(12);
+        note.setPadding(0, 0, 0, dp(4));
+        content.addView(note);
+        int[] labels = {R.string.cheat_infinite_energy, R.string.cheat_infinite_run,
+                        R.string.cheat_frozen_clock, R.string.cheat_one_hit_ko};
+        for (int cheat = 0; cheat < labels.length; cheat++) {
+            final int id = cheat;
+            CheckBox box = new CheckBox(this);
+            box.setText(labels[cheat]);
+            box.setTextColor(cheat == Cheats.ONE_HIT_KO ? 0xffffb4a0 : 0xffffffff);
+            box.setChecked(Cheats.isOn(cheatMask, cheat));
+            box.setTag("cheat-" + cheat);
+            box.setOnCheckedChangeListener((v, checked) -> setCheat(id, checked));
+            content.addView(box);
+        }
     }
 
     private void openMovePanel() {
@@ -399,6 +465,7 @@ public final class MainActivity extends Activity {
                 engine.setSixButton(layout.sixButton);
                 engine.setPerformanceOptions(layout.showBorders, layout.autoFrameSkip);
                 engine.load(rom, saveFile(rom));
+                engine.applyCheats(cheatMask);   // the switches survive a reload
                 runOnUiThread(() -> {
                     if (destroyed) return;
                     loading = false; userPaused = false; settingsStore.preferences().edit().putString("lastRom", rom.getAbsolutePath()).apply();
@@ -449,6 +516,10 @@ public final class MainActivity extends Activity {
     MovePanel movePanelForTest() { return movePanel; }
     MacroRunner macroForTest() { return macro; }
     MoveData.Move lastMoveForTest() { return lastMove; }
+    int cheatMaskForTest() { return cheatMask; }
+    int nativeCheatMaskForTest() { return engine.cheatMask(); }
+    TextView cheatBadgeForTest() { return cheatBadge; }
+    LinearLayout sidePanelForTest() { return sidePanel; }
     /** Test hook: run a move exactly like the panel does. */
     void playMoveForTest(String fighterName, String moveName) {
         for (MoveData.Move move : MoveData.movesFor(fighterName)) {

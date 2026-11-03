@@ -87,6 +87,40 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  cheat-engine:
+    name: cheat-engine-host-verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fetch private CI game input (never committed to Git)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ci-rom
+          gh release download ci-private-inputs --repo "$GITHUB_REPOSITORY" --pattern umk3-usa.md --dir ci-rom
+      - name: Build the host core and prove every cheat switch against live RAM
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y cmake python3-pil
+          cmake -S core/src/main/cpp -B host-build -DCMAKE_BUILD_TYPE=Release -DSEGA_TEST_API=OFF
+          cmake --build host-build -j2
+          python3 tools/verify_cheats.py host-build/libgenesis_host.so ci-rom/umk3-usa.md \
+            --out cheat-proof --sheet cheat-proof.png
+      - name: Upload cheat proof
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cheat-engine-proof
+          path: |
+            cheat-proof/
+            cheat-proof.png
+          if-no-files-found: warn
+          retention-days: 30
+
   arm64-core-pixels:
     name: arm64-native-core-pixels
     runs-on: ubuntu-24.04-arm

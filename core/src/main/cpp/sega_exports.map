@@ -1,4 +1,4 @@
 {
-  global: Java_*; retro_*;
+  global: Java_*; retro_*; sega_cheats_*;
   local: *;
 };

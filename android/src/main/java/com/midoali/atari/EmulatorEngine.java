@@ -5,6 +5,7 @@ import android.media.AudioFormat;
 import android.media.AudioTimestamp;
 import android.media.AudioTrack;
 import android.util.Log;
+import com.midoali.atari.core.Cheats;
 import com.midoali.atari.core.SegaButtons;
 import com.midoali.atari.core.SegaCore;
 import java.io.File;
@@ -217,6 +218,11 @@ final class EmulatorEngine {
         showBorders = borders; autoFrameSkip = skip;
         SegaCore.nativeSetPerformanceOptions(borders, skip);
     }
+    /** Applied between frames by the core, so a switch bites in the running fight. */
+    void setCheat(int id, boolean enabled) { SegaCore.nativeSetCheat(id, enabled); }
+    void applyCheats(int mask) { Cheats.apply(mask, this::setCheat); }
+    int cheatMask() { return SegaCore.nativeCheatMask(); }
+
     void setInput(int mask) {
         int sanitized = SegaButtons.sanitize(mask);
         input.set(sanitized); SegaCore.nativeSetInput(sanitized);

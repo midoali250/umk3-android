@@ -8,6 +8,7 @@
 #include <string.h>
 #include <time.h>
 #include <android/log.h>
+#include "cheat_engine.h"
 #include "genesis-plus-gx/libretro/libretro-common/include/libretro.h"
 
 #define MAX_ROM (16u * 1024u * 1024u)
@@ -50,6 +51,14 @@ static int debug_last_input = -1;
 static retro_audio_buffer_status_callback_t audio_status_cb;
 static unsigned audio_occupancy;
 static bool audio_active, audio_underrun;
+
+/* Thin bridge: the cheat logic lives in cheat_engine.c so the host build can
+ * run the very same code (see tools/verify_cheats.py). */
+static void apply_cheats(void) {
+    uint8_t *ram = loaded ? (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM) : NULL;
+    size_t size = loaded ? retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM) : 0;
+    if (ram) sega_cheats_apply(ram, size);
+}
 
 static void throw_java(JNIEnv *env, const char *type, const char *message) {
     jclass cls = (*env)->FindClass(env, type);
@@ -159,6 +168,15 @@ JNIEXPORT void JNICALL Java_com_midoali_atari_core_SegaCore_nativeSetSixButton(J
         enabled ? RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 1) : RETRO_DEVICE_JOYPAD);
     pthread_mutex_unlock(&core_mutex);
 }
+JNIEXPORT void JNICALL Java_com_midoali_atari_core_SegaCore_nativeSetCheat(JNIEnv *env, jclass cls,
+        jint id, jboolean enabled) {
+    (void)env; (void)cls;
+    sega_cheats_set(id, enabled ? 1 : 0);
+}
+JNIEXPORT jint JNICALL Java_com_midoali_atari_core_SegaCore_nativeCheatMask(JNIEnv *env, jclass cls) {
+    (void)env; (void)cls;
+    return sega_cheats_mask();
+}
 JNIEXPORT void JNICALL Java_com_midoali_atari_core_SegaCore_nativeSetPerformanceOptions(
         JNIEnv *env, jclass cls, jboolean borders, jboolean skip) {
     (void)env; (void)cls;
@@ -230,7 +248,9 @@ JNIEXPORT jint JNICALL Java_com_midoali_atari_core_SegaCore_nativeRun(JNIEnv *en
     if (audio_status_cb) audio_status_cb(audio_active, audio_occupancy, audio_underrun);
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
+    apply_cheats();
     retro_run();
+    apply_cheats();
     clock_gettime(CLOCK_MONOTONIC, &end);
     video_target = NULL;
     if (debug_runs < 8) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, "run #%u updated=%d serial=%zu %ux%u audio=%zu", debug_runs, video_updated ? 1 : 0, frame_serial, frame_width, frame_height, audio_count);
@@ -303,6 +323,12 @@ JNIEXPORT jint JNICALL Java_com_midoali_atari_core_SegaCore_nativeTestInput(JNIE
     (void)env; (void)cls;
     if (id < 0) return atomic_load_explicit(&input_mask, memory_order_relaxed);
     return input_state(0, RETRO_DEVICE_JOYPAD, 0, (unsigned)id);
+}
+JNIEXPORT jboolean JNICALL Java_com_midoali_atari_core_SegaCore_nativeTestInMatch(JNIEnv *env, jclass cls) {
+    (void)env; (void)cls; pthread_mutex_lock(&core_mutex);
+    uint8_t *ram = loaded ? (uint8_t *)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM) : NULL;
+    jboolean live = (jboolean)sega_cheats_in_match(ram, ram ? retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM) : 0);
+    pthread_mutex_unlock(&core_mutex); return live;
 }
 JNIEXPORT jbyteArray JNICALL Java_com_midoali_atari_core_SegaCore_nativeTestRam(JNIEnv *env, jclass cls, jint offset, jint length) {
     (void)cls; pthread_mutex_lock(&core_mutex);

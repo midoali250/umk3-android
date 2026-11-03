@@ -2,6 +2,7 @@ package com.midoali.atari;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import com.midoali.atari.core.Cheats;
 import com.midoali.atari.core.ControlLayout;
 
 final class SettingsStore {
@@ -53,5 +54,8 @@ final class SettingsStore {
                 .putBoolean("autoFrameSkip", value.autoFrameSkip)
                 .putInt("videoMode", value.videoMode).putInt("displayMode", value.displayMode).apply();
     }
+    /** Cheat switches survive restarts and game reloads. */
+    int loadCheats() { return Cheats.clamp(prefs.getInt("cheatMask", Cheats.NONE)); }
+    void saveCheats(int mask) { prefs.edit().putInt("cheatMask", Cheats.clamp(mask)).apply(); }
     SharedPreferences preferences() { return prefs; }
 }

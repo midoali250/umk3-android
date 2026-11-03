@@ -38,3 +38,4 @@ ci-rom/
 
 # Cached third-party move-list pages (regenerate with tools/generate_moves.py)
 tools/move-lists/
+__pycache__/
