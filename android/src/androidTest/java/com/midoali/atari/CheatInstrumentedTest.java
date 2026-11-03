@@ -236,6 +236,7 @@ public class CheatInstrumentedTest {
             // 5. The drawer itself, with the switches armed.
             scenario.onActivity(a -> a.gearForTest().performClick());
             await(scenario, MainActivity::isSidePanelOpen);
+            SystemClock.sleep(600);   // let the drawer be drawn before the capture
             screenshot(activity, "cheats-panel");
             scenario.onActivity(a -> a.gearForTest().performClick());
             await(scenario, a -> !a.isSidePanelOpen());

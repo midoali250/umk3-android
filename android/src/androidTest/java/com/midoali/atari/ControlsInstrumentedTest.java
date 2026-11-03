@@ -133,8 +133,19 @@ public class ControlsInstrumentedTest {
             inject(dragEvent(a,MotionEvent.ACTION_MOVE,px-diagonal,py+diagonal));
             int downBack=(1<<SegaButtons.DOWN)|(1<<SegaButtons.LEFT);
             awaitMask(a,downBack,"stick did not slide to the down-back diagonal");
-            inject(dragEvent(a,MotionEvent.ACTION_MOVE,px+r*0.03f,py+r*0.03f));
-            awaitMask(a,0,"stick dead zone did not release the direction");
+            // Injected MOVE streams can be coalesced or dropped by the input
+            // pipeline, so nudge the same centre point a few times before
+            // calling the dead zone dead.
+            boolean released=false;
+            for(int attempt=0;attempt<6&&!released;attempt++){
+                inject(dragEvent(a,MotionEvent.ACTION_MOVE,px+r*0.03f,py+r*0.03f));
+                long releaseDeadline=SystemClock.uptimeMillis()+800;
+                while(SystemClock.uptimeMillis()<releaseDeadline){
+                    if(a.engineForTest().inputMask()==0){released=true;break;}
+                    SystemClock.sleep(20);
+                }
+            }
+            assertTrue("stick dead zone did not release the direction: mask="+a.engineForTest().inputMask(),released);
             inject(dragEvent(a,MotionEvent.ACTION_UP,px+r*0.03f,py+r*0.03f));
             awaitMask(a,0,"stick did not release on touch up");
             // The FINISH star opens the one-tap move panel through the real touch path.
